@@ -25,5 +25,5 @@ app.use('/api/family', familyRoutes)
 
 app.get('/health', (_, res) => res.status(200).json({ status: 'ok' }))
 
-const [url = 'http://localhost', port = '3001'] = (process.env.SERVER_URL || '').split(':')
-httpServer.listen(port, () => console.log(`🚀 Server running on ${url}:${port}`))
+const serverUrl = new URL(process.env.SERVER_URL || 'http://localhost:3001')
+httpServer.listen(serverUrl.port, () => console.log(`🚀 Server running on ${serverUrl.origin}`))
