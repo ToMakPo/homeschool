@@ -38,7 +38,9 @@ router.get('/byId/:familyId', authenticate, async (req: Request, res: Response) 
 		if (!family) return res.status(404).json({ message: 'Family not found' })
 
 		// Fetch all family members for the given familyId.
-		const members = await pool.query('SELECT * FROM familyMember_view WHERE familyId = ?', [familyId]).then(res => res[0] as FamilyMember[])
+		const members = await pool
+			.query('SELECT * FROM view_family_member WHERE familyId = ?', [familyId])
+			.then(res => res[0] as FamilyMember[])
 
 		if (members.length === 0) {
 			// If no members are found, delete the family and return a 404 response.
@@ -78,7 +80,7 @@ router.get('/for-user', authenticate, async (req: Request, res: Response) => {
 
 	try {
 		const families = await pool
-			.query('SELECT * FROM family WHERE id IN (SELECT familyId FROM familyMember WHERE userId = ?)', [user.id])
+			.query('SELECT * FROM family WHERE id IN (SELECT familyId FROM family_member WHERE userId = ?)', [user.id])
 			.then(res => res[0] as Family[])
 
 		return res.json(families)
@@ -123,7 +125,7 @@ router.put('/create', authenticate, async (req: Request, res: Response) => {
 
 		await pool.execute('INSERT INTO family (id, name, ownerId, joinCode) VALUES (?, ?, ?, ?)', [id, name, user.id, joinCode])
 
-		await pool.execute('INSERT INTO familyMember (id, familyId, userId) VALUES (?, ?, ?)', [uuidv4(), id, user.id])
+		await pool.execute('INSERT INTO family_member (id, familyId, userId) VALUES (?, ?, ?)', [uuidv4(), id, user.id])
 
 		return res.status(201).json({ id, name, ownerId: user.id, joinCode })
 	} catch (err) {
@@ -161,12 +163,12 @@ router.put('/join', authenticate, async (req: Request, res: Response) => {
 
 		const existingMember = (
 			await pool
-				.query('SELECT * FROM familyMember WHERE familyId = ? AND userId = ?', [family.id, user.id])
+				.query('SELECT * FROM family_member WHERE familyId = ? AND userId = ?', [family.id, user.id])
 				.then(res => res[0] as FamilyMember[])
 		)[0]
 		if (existingMember) return res.status(400).json({ message: 'You are already a member of this family' })
 
-		await pool.execute('INSERT INTO familyMember (id, familyId, userId) VALUES (?, ?, ?)', [uuidv4(), family.id, user.id])
+		await pool.execute('INSERT INTO family_member (id, familyId, userId) VALUES (?, ?, ?)', [uuidv4(), family.id, user.id])
 
 		// TODO: Broadcast to all family members that a new member has joined the family.
 
@@ -305,7 +307,7 @@ router.post('/leave', authenticate, async (req: Request, res: Response) => {
 
 		const existingMember = (
 			await pool
-				.query('SELECT * FROM familyMember WHERE familyId = ? AND userId = ?', [family.id, user.id])
+				.query('SELECT * FROM family_member WHERE familyId = ? AND userId = ?', [family.id, user.id])
 				.then(res => res[0] as FamilyMember[])
 		)[0]
 		if (!existingMember) return res.status(400).json({ message: 'You are not a member of this family' })
@@ -313,14 +315,14 @@ router.post('/leave', authenticate, async (req: Request, res: Response) => {
 		if (family.ownerId === user.id) {
 			const otherAdults = await pool
 				.query(
-					'SELECT u.id AS userId FROM familyMember AS fm JOIN user_view AS u ON fm.userId = u.id WHERE fm.familyId = ? AND u.role = ? AND fm.userId != ? ORDER BY fm.createdAt ASC',
+					'SELECT u.id AS userId FROM family_member AS fm JOIN view_user AS u ON fm.userId = u.id WHERE fm.familyId = ? AND u.role = ? AND fm.userId != ? ORDER BY fm.createdAt ASC',
 					[family.id, 'parent', user.id]
 				)
 				.then(res => res[0] as any[])
 
 			if (otherAdults.length === 0) {
 				pool.execute('DELETE FROM family WHERE id = ?', [family.id])
-				pool.execute('DELETE FROM familyMember WHERE familyId = ?', [family.id])
+				pool.execute('DELETE FROM family_member WHERE familyId = ?', [family.id])
 
 				// TODO: Broadcast to all other user sessions that the family has been deleted.
 
@@ -343,7 +345,7 @@ router.post('/leave', authenticate, async (req: Request, res: Response) => {
 			}
 
 			await pool.execute('UPDATE family SET ownerId = ? WHERE id = ?', [newOwnerId, family.id])
-			await pool.execute('DELETE FROM familyMember WHERE familyId = ? AND userId = ?', [family.id, user.id])
+			await pool.execute('DELETE FROM family_member WHERE familyId = ? AND userId = ?', [family.id, user.id])
 
 			// TODO: Broadcast to all family members that the ownership has been transferred and that the user has left the family.
 			// TODO: Broadcast to the new owner that they have been assigned as the new owner of the family.
@@ -352,7 +354,7 @@ router.post('/leave', authenticate, async (req: Request, res: Response) => {
 
 			return res.status(200).json({ message: 'You have left the family and ownership has been transferred.', newOwnerId })
 		} else {
-			await pool.execute('DELETE FROM familyMember WHERE familyId = ? AND userId = ?', [family.id, user.id])
+			await pool.execute('DELETE FROM family_member WHERE familyId = ? AND userId = ?', [family.id, user.id])
 
 			// TODO: Broadcast to all family members that the user has left the family.
 			// TODO: Broadcast to the user that they have left the family.
@@ -404,12 +406,12 @@ router.post('/remove-member', authenticate, async (req: Request, res: Response) 
 
 		const existingMember = (
 			await pool
-				.query('SELECT * FROM familyMember WHERE familyId = ? AND userId = ?', [family.id, targetId])
+				.query('SELECT * FROM family_member WHERE familyId = ? AND userId = ?', [family.id, targetId])
 				.then(res => res[0] as FamilyMember[])
 		)[0]
 		if (!existingMember) return res.status(400).json({ message: 'The specified user is not a member of this family' })
 
-		await pool.execute('DELETE FROM familyMember WHERE familyId = ? AND userId = ?', [family.id, targetId])
+		await pool.execute('DELETE FROM family_member WHERE familyId = ? AND userId = ?', [family.id, targetId])
 
 		// TODO: Broadcast to all family members that the member has been removed from the family.
 		// TODO: Broadcast to the removed member that they have been removed from the family.
@@ -452,7 +454,7 @@ router.delete('/byId/:familyId', authenticate, async (req: Request, res: Respons
 		if (family.ownerId !== user.id) return res.status(403).json({ message: 'Only the family owner can delete the family' })
 
 		await pool.execute('DELETE FROM family WHERE id = ?', [family.id])
-		await pool.execute('DELETE FROM familyMember WHERE familyId = ?', [family.id])
+		await pool.execute('DELETE FROM family_member WHERE familyId = ?', [family.id])
 
 		// TODO: Broadcast to all family members that the family has been deleted.
 		// TODO: Broadcast to all other user sessions that the family has been deleted.

@@ -77,7 +77,7 @@ router.post('/register', async (req: Request, res: Response) => {
 		if (!newUser) return res.status(500).json({ message: 'Unable to retrieve newly created user.' })
 
 		if (familyId) {
-			await pool.query('INSERT INTO familyMember (familyId, userId) VALUES (?, ?)', [familyId, userId])
+			await pool.query('INSERT INTO family_member (familyId, userId) VALUES (?, ?)', [familyId, userId])
 
 			// TODO: Broadcast to all family members that a new member has joined the family.
 		}
@@ -138,7 +138,7 @@ router.post('/login', async (req: Request, res: Response) => {
 		const passwordMatch = await bcrypt.compare(password, hashedPassword)
 		if (!passwordMatch) return res.status(401).json(loginFailedResponse)
 
-		const user = (await pool.query('SELECT * FROM user_view WHERE id = ?', [id]).then(result => result[0] as User[]))[0]
+		const user = (await pool.query('SELECT * FROM view_user WHERE id = ?', [id]).then(result => result[0] as User[]))[0]
 		if (!user) return res.status(500).json({ message: 'Unable to retrieve user after successful login.' })
 
 		/// LOG THE USER INTO THE SESSION

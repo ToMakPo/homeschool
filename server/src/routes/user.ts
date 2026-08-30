@@ -28,7 +28,7 @@ router.get('/self', authenticate, async (req: Request, res: Response) => {
 	if (!req.user) return res.status(401).json({ message: 'Unauthorized' })
 
 	try {
-		const results = await pool.query('SELECT * FROM user_view WHERE id = ?', [req.user.id]).then(res => res[0] as User[])
+		const results = await pool.query('SELECT * FROM view_user WHERE id = ?', [req.user.id]).then(res => res[0] as User[])
 		const user = results[0]
 		if (!user) return res.status(404).json({ message: 'User not found' })
 		res.json(user)
@@ -103,7 +103,7 @@ router.patch('/self', authenticate, async (req: Request, res: Response) => {
 
 	try {
 		await pool.execute(`UPDATE users SET ${setClause} WHERE id = ?`, [...values, user.id])
-		const updatedUser = (await pool.query('SELECT * FROM user_view WHERE id = ?', [user.id]).then(res => res[0] as User[]))[0]
+		const updatedUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then(res => res[0] as User[]))[0]
 
 		// TODO: Broadcast to all family members that the user has updated their information.
 

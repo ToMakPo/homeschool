@@ -35,7 +35,7 @@ CREATE TABLE family (
 	FOREIGN KEY (ownerId) REFERENCES user(id) ON DELETE CASCADE
 );
 
-CREATE TABLE familyMember (
+CREATE TABLE family_member (
 	id varchar(36) PRIMARY KEY,
 	familyId varchar(36) NOT NULL,
 	userId varchar(36) NOT NULL,
@@ -70,7 +70,7 @@ CREATE TABLE assignment (
 	FOREIGN KEY (subjectId) REFERENCES subject(id) ON DELETE CASCADE
 );
 
-CREATE TABLE assignmentGroup (
+CREATE TABLE assignment_group (
 	id varchar(36) PRIMARY KEY,
 	assignmentId varchar(36) NOT NULL,
 	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -78,13 +78,13 @@ CREATE TABLE assignmentGroup (
 	FOREIGN KEY (assignmentId) REFERENCES assignment(id) ON DELETE CASCADE
 );
 
-CREATE TABLE assignmentGroupMember (
+CREATE TABLE assignment_group_member (
 	id varchar(36) PRIMARY KEY,
 	groupId varchar(36) NOT NULL,
 	studentId varchar(36) NOT NULL,
 	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	FOREIGN KEY (groupId) REFERENCES assignmentGroup(id) ON DELETE CASCADE,
+	FOREIGN KEY (groupId) REFERENCES assignment_group(id) ON DELETE CASCADE,
 	FOREIGN KEY (studentId) REFERENCES user(id) ON DELETE CASCADE
 );
 
@@ -99,7 +99,7 @@ CREATE TABLE task (
 	FOREIGN KEY (assignmentId) REFERENCES assignment(id) ON DELETE CASCADE
 );
 
-CREATE TABLE taskStatus (
+CREATE TABLE task_status (
 	id varchar(36) PRIMARY KEY,
 	taskId varchar(36) NOT NULL,
 	groupId varchar(36) NOT NULL,
@@ -107,7 +107,7 @@ CREATE TABLE taskStatus (
 	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	FOREIGN KEY (taskId) REFERENCES task(id) ON DELETE CASCADE,
-	FOREIGN KEY (groupId) REFERENCES assignmentGroup(id) ON DELETE CASCADE
+	FOREIGN KEY (groupId) REFERENCES assignment_group(id) ON DELETE CASCADE
 );
 
 CREATE TABLE comment (
@@ -117,7 +117,7 @@ CREATE TABLE comment (
 	content TEXT NOT NULL,
 	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	FOREIGN KEY (groupId) REFERENCES assignmentGroup(id) ON DELETE CASCADE,
+	FOREIGN KEY (groupId) REFERENCES assignment_group(id) ON DELETE CASCADE,
 	FOREIGN KEY (userId) REFERENCES user(id) ON DELETE CASCADE
 );
 
@@ -131,7 +131,7 @@ CREATE TABLE attachment (
 	FOREIGN KEY (familyId) REFERENCES family(id) ON DELETE CASCADE
 );
 
-CREATE TABLE assignmentAttachment (
+CREATE TABLE assignment_attachment (
 	id varchar(36) PRIMARY KEY,
 	assignmentId varchar(36) NOT NULL,
 	attachmentId varchar(36) NOT NULL,
@@ -141,7 +141,7 @@ CREATE TABLE assignmentAttachment (
 	FOREIGN KEY (attachmentId) REFERENCES attachment(id) ON DELETE CASCADE
 );
 
-CREATE TABLE taskAttachment (
+CREATE TABLE task_attachment (
 	id varchar(36) PRIMARY KEY,
 	taskId varchar(36) NOT NULL,
 	attachmentId varchar(36) NOT NULL,
@@ -151,7 +151,7 @@ CREATE TABLE taskAttachment (
 	FOREIGN KEY (attachmentId) REFERENCES attachment(id) ON DELETE CASCADE
 );
 
-CREATE TABLE commentAttachment (
+CREATE TABLE comment_attachment (
 	id varchar(36) PRIMARY KEY,
 	commentId varchar(36) NOT NULL,
 	attachmentId varchar(36) NOT NULL,
@@ -168,39 +168,39 @@ CREATE TABLE commentAttachment (
 
 DELIMITER $$
 
-CREATE TRIGGER after_assignmentAttachment_delete
-AFTER DELETE ON assignmentAttachment
+CREATE TRIGGER after_assignment_attachment_delete
+AFTER DELETE ON assignment_attachment
 FOR EACH ROW
 BEGIN
     -- Check if the attachment is still used by task or comment
-    IF NOT EXISTS (SELECT 1 FROM assignmentAttachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM taskAttachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM commentAttachment WHERE attachmentId = OLD.attachmentId) THEN
+    IF NOT EXISTS (SELECT 1 FROM assignment_attachment WHERE attachmentId = OLD.attachmentId) AND
+		NOT EXISTS (SELECT 1 FROM task_attachment WHERE attachmentId = OLD.attachmentId) AND
+		NOT EXISTS (SELECT 1 FROM comment_attachment WHERE attachmentId = OLD.attachmentId) THEN
         
         -- If no references exist, delete the orphan attachment
         DELETE FROM attachment WHERE id = OLD.attachmentId;
     END IF;
 END$$
 
-CREATE TRIGGER after_taskAttachment_delete
-AFTER DELETE ON taskAttachment
+CREATE TRIGGER after_task_attachment_delete
+AFTER DELETE ON task_attachment
 FOR EACH ROW
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM assignmentAttachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM taskAttachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM commentAttachment WHERE attachmentId = OLD.attachmentId) THEN
+    IF NOT EXISTS (SELECT 1 FROM assignment_attachment WHERE attachmentId = OLD.attachmentId) AND
+		NOT EXISTS (SELECT 1 FROM task_attachment WHERE attachmentId = OLD.attachmentId) AND
+		NOT EXISTS (SELECT 1 FROM comment_attachment WHERE attachmentId = OLD.attachmentId) THEN
         
         DELETE FROM attachment WHERE id = OLD.attachmentId;
     END IF;
 END$$
 
-CREATE TRIGGER after_commentAttachment_delete
-AFTER DELETE ON commentAttachment
+CREATE TRIGGER after_comment_attachment_delete
+AFTER DELETE ON comment_attachment
 FOR EACH ROW
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM assignmentAttachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM taskAttachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM commentAttachment WHERE attachmentId = OLD.attachmentId) THEN
+    IF NOT EXISTS (SELECT 1 FROM assignment_attachment WHERE attachmentId = OLD.attachmentId) AND
+		NOT EXISTS (SELECT 1 FROM task_attachment WHERE attachmentId = OLD.attachmentId) AND
+		NOT EXISTS (SELECT 1 FROM comment_attachment WHERE attachmentId = OLD.attachmentId) THEN
         
         DELETE FROM attachment WHERE id = OLD.attachmentId;
     END IF;
@@ -215,7 +215,7 @@ DELIMITER ;
 
 SET GLOBAL event_scheduler = ON;
 
-CREATE EVENT IF NOT EXISTS purgeExpiredSession
+CREATE EVENT IF NOT EXISTS purge_expired_session
 ON SCHEDULE EVERY 1 HOUR
 DO
 	DELETE FROM session 
@@ -225,7 +225,7 @@ DO
 -- --- CREATE VIEWS ---
 -- --------------------
 
-CREATE VIEW user_view AS
+CREATE VIEW view_user AS
 SELECT 
 	u.id,
 	u.username,
@@ -236,7 +236,7 @@ SELECT
 	u.avatarUrl as avatarUrl
 FROM user u;
 
-CREATE VIEW familyMember_view AS
+CREATE VIEW view_family_member AS
 SELECT 
 	fm.id,
 	fm.familyId as familyId,
@@ -247,5 +247,5 @@ SELECT
 	u.displayName as displayName,
 	u.role,
 	u.avatarUrl as avatarUrl
-FROM familyMember fm
+FROM family_member fm
 JOIN user u ON fm.userId = u.id;
