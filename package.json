@@ -3,13 +3,13 @@
 	"private": true,
 	"author": "Makai Post (post.makai@gmail.com)",
 	"workspaces": [
-		"client",
-		"server"
+		"app-client",
+		"app-server"
 	],
 	"scripts": {
-		"dev": "concurrently --names \"server,client\" \"npm run dev -w server\" \"npm run dev -w client\"",
-		"build": "npm run build --workspace=server && npm run build --workspace=client",
-		"build-db": "npm run --workspace=server build-db"
+		"dev": "concurrently --names \"server,client\" \"npm run dev -w app-server\" \"npm run dev -w app-client\"",
+		"build": "npm run build --workspace=app-server && npm run build --workspace=app-client",
+		"build-db": "npm run --workspace=app-server build-db"
 	},
 	"devDependencies": {
 		"concurrently": "^8.2.2"
