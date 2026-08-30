@@ -62,7 +62,7 @@ router.patch('/self', authenticate, async (req: Request, res: Response) => {
 	const newValues: Partial<Omit<User, 'id' | 'avatarUrl'>> = {}
 
 	if (updates.username !== undefined) {
-		const { valid, message, value } = await validateUsername(updates.username, user.username)
+		const { valid, message, value } = await validateUsername(updates.username, user.id)
 		if (!valid) return res.status(400).json({ message })
 		newValues.username = value!
 	}
@@ -102,7 +102,7 @@ router.patch('/self', authenticate, async (req: Request, res: Response) => {
 	const values = Object.values(newValues)
 
 	try {
-		await pool.execute(`UPDATE users SET ${setClause} WHERE id = ?`, [...values, user.id])
+		await pool.execute(`UPDATE user SET ${setClause} WHERE id = ?`, [...values, user.id])
 		const updatedUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then(res => res[0] as User[]))[0]
 
 		// TODO: Broadcast to all family members that the user has updated their information.
@@ -144,7 +144,7 @@ router.patch('/password', authenticate, async (req: Request, res: Response) => {
 	if (!valid) return res.status(400).json({ message })
 
 	try {
-		const storedHash = await pool.query('SELECT password FROM users WHERE id = ?', [user.id]).then(res => (res[0] as any[])[0].password)
+		const storedHash = await pool.query('SELECT password FROM user WHERE id = ?', [user.id]).then(res => (res[0] as any[])[0].password)
 
 		const isMatch = await bcrypt.compare(currentPassword, storedHash)
 
@@ -152,7 +152,7 @@ router.patch('/password', authenticate, async (req: Request, res: Response) => {
 
 		const newHash = await bcrypt.hash(value!, 10)
 
-		await pool.execute('UPDATE users SET password = ? WHERE id = ?', [newHash, user.id])
+		await pool.execute('UPDATE user SET password = ? WHERE id = ?', [newHash, user.id])
 
 		return res.json({ message: 'Password changed successfully' })
 	} catch (err) {
@@ -188,7 +188,7 @@ router.patch('/avatar', authenticate, upload.single('avatar'), async (req: Reque
 
 	try {
 		const avatarUrl = `/uploads/${file.filename}`
-		await pool.execute('UPDATE users SET avatar_url = ? WHERE id = ?', [avatarUrl, user.id])
+		await pool.execute('UPDATE user SET avatar_url = ? WHERE id = ?', [avatarUrl, user.id])
 
 		//TODO: brodcast to all family members that the user has updated their avatar.
 
@@ -228,7 +228,7 @@ router.delete('/self', authenticate, async (req: Request, res: Response) => {
 			const nextParentId = (
 				await pool
 					.query(
-						"SELECT fm.user_id FROM family fm JOIN users u ON fm.user_id = u.id WHERE fm.family_id = ? AND u.role = 'parent' AND fm.user_id != ? ORDER BY fm.created_at ASC LIMIT 1",
+						"SELECT fm.user_id FROM family fm JOIN user u ON fm.user_id = u.id WHERE fm.family_id = ? AND u.role = 'parent' AND fm.user_id != ? ORDER BY fm.created_at ASC LIMIT 1",
 						[familyId, user.id]
 					)
 					.then(res => (res[0] as { user_id: string }[]).map(row => row.user_id))
@@ -247,9 +247,9 @@ router.delete('/self', authenticate, async (req: Request, res: Response) => {
 			}
 		})
 
-		await pool.execute('DELETE FROM users WHERE id = ?', [user.id])
+		await pool.execute('DELETE FROM user WHERE id = ?', [user.id])
 
-		await pool.execute('DELETE FROM sessions WHERE user_id = ?', [user.id])
+		await pool.execute('DELETE FROM session WHERE user_id = ?', [user.id])
 
 		await pool.execute('DELETE FROM family WHERE user_id = ?', [user.id])
 

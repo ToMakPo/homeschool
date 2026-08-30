@@ -6,7 +6,9 @@
 		"dev": "tsx watch src/index.ts",
 		"build": "tsc",
 		"start": "node dist/index.js",
-		"build-db": "tsx src/database/build-db.ts"
+		"build-db": "tsx src/database/build-db.ts",
+		"pull-data": "tsx src/database/pull-data.ts",
+		"push-data": "tsx src/database/push-data.ts"
 	},
 	"dependencies": {
 		"bcryptjs": "^2.4.3",

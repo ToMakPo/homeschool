@@ -9,7 +9,9 @@
 	"scripts": {
 		"dev": "concurrently --names \"server,client\" \"npm run dev -w app-server\" \"npm run dev -w app-client\"",
 		"build": "npm run build --workspace=app-server && npm run build --workspace=app-client",
-		"build-db": "npm run --workspace=app-server build-db"
+		"build-db": "npm run --workspace=app-server build-db",
+		"pull-data": "npm run --workspace=app-server pull-data",
+		"push-data": "npm run --workspace=app-server push-data"
 	},
 	"devDependencies": {
 		"concurrently": "^8.2.2"

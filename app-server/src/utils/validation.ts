@@ -43,7 +43,7 @@ interface ValidationResult<T = string> {
  * @returns A promise that resolves to a `ValidationResult` object containing the
  * validation result, message, and cleaned value.
  */
-export async function validateUsername(username: any, ignore?: string): Promise<ValidationResult<string>> {
+export async function validateUsername(username: any, ignoreId?: string): Promise<ValidationResult<string>> {
 	if (username === undefined || username === null) {
 		return { valid: false, message: 'Username is required', value: undefined }
 	}
@@ -66,9 +66,9 @@ export async function validateUsername(username: any, ignore?: string): Promise<
 		return { valid: false, message: 'Username can only contain letters, numbers, and underscores', value: undefined }
 	}
 
-	const isUnique =
-		(ignore && value === ignore)
-		|| !(await pool.query('SELECT COUNT(*) AS count FROM users WHERE username = ?', [value]).then(res => (res[0] as any[])[0].count === 0))
+	const isUnique = await pool
+		.query('SELECT COUNT(*) AS count FROM user WHERE username = ? AND id != ?', [value, ignoreId ?? ''])
+		.then(res => (res[0] as any[])[0].count === 0)
 
 	if (!isUnique) {
 		return { valid: false, message: 'Username is already taken', value: undefined }

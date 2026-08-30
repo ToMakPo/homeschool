@@ -57,6 +57,9 @@ export function signToken(user: User, rememberMe = false) {
 
 	const decoded = jwt.decode(accessToken) as { exp: number }
 	const expiresAt = new Date(decoded.exp * 1000)
+	const offset = expiresAt.getTimezoneOffset() * 60000
+	const localExpiresAt = new Date(expiresAt.getTime() - offset)
+	// TODO: This needs to be tested to ensure that the expiration time is in production.
 
-	return { accessToken, expiresAt }
+	return { accessToken, expiresAt: localExpiresAt }
 }

@@ -7,9 +7,9 @@ import dotenv from 'dotenv'
 dotenv.config({ path: path.join(__dirname, '../../.env') })
 
 async function rebuildDatabase() {
-	const sqlFilePath = path.join(__dirname, 'app.sql')
+	const sqlFilePath = path.join(__dirname, 'db.create.sql')
 
-	console.log('Reading app.sql file...')
+	console.info('Reading db.create.sql file...')
 	if (!fs.existsSync(sqlFilePath)) {
 		console.error(`Error: Could not find sql file at ${sqlFilePath}`)
 		process.exit(1)
@@ -50,7 +50,7 @@ async function rebuildDatabase() {
 	const allStatements = [...standardStatements, ...triggerStatements]
 
 	// Connect using your DB_ADMIN credentials from the .env file
-	console.log(`Connecting to database as ${process.env.DB_ADMIN_USER || 'root'}...`)
+	console.info(`Connecting to database as ${process.env.DB_ADMIN_USER || 'root'}...`)
 	const connection = await mysql.createConnection({
 		host: process.env.DB_HOST || 'localhost',
 		port: Number(process.env.DB_PORT) || 3306,
@@ -59,7 +59,7 @@ async function rebuildDatabase() {
 	})
 
 	try {
-		console.log(`Executing ${allStatements.length} SQL statements sequentially...`)
+		console.info(`Executing ${allStatements.length} SQL statements sequentially...`)
 
 		for (let i = 0; i < allStatements.length; i++) {
 			const statement = allStatements[i]
@@ -73,7 +73,7 @@ async function rebuildDatabase() {
 			}
 		}
 
-		console.log('\nDatabase completely dropped and rebuilt with triggers! 🎉')
+		console.info('\nDatabase completely dropped and rebuilt with triggers! 🎉')
 	} catch (error) {
 		console.error('Error rebuilding database:', error)
 		process.exit(1)

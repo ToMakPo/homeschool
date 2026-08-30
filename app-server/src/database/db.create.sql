@@ -11,6 +11,7 @@ CREATE TABLE user (
 	displayName varchar(255) DEFAULT NULL,
 	role ENUM('parent', 'student') NOT NULL,
 	avatarUrl varchar(512) DEFAULT NULL,
+	passwordReset BOOLEAN NOT NULL DEFAULT FALSE,
 	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -18,7 +19,7 @@ CREATE TABLE user (
 CREATE TABLE session (
 	id varchar(36) PRIMARY KEY,
 	userId varchar(36) NOT NULL,
-	authToken varchar(255) NOT NULL,
+	authToken TEXT NOT NULL,
 	expiresAt DATETIME NOT NULL,
 	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -73,6 +74,7 @@ CREATE TABLE assignment (
 CREATE TABLE assignment_group (
 	id varchar(36) PRIMARY KEY,
 	assignmentId varchar(36) NOT NULL,
+	status ENUM('not_started', 'in_progress', 'ready_for_review', 'needs_revision', 'completed') NOT NULL DEFAULT 'not_started',
 	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 	FOREIGN KEY (assignmentId) REFERENCES assignment(id) ON DELETE CASCADE

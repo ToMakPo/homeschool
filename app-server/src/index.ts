@@ -26,4 +26,4 @@ app.use('/api/family', familyRoutes)
 app.get('/health', (_, res) => res.status(200).json({ status: 'ok' }))
 
 const serverUrl = new URL(process.env.SERVER_URL || 'http://localhost:3001')
-httpServer.listen(serverUrl.port, () => console.log(`🚀 Server running on ${serverUrl.origin}`))
+httpServer.listen(serverUrl.port, () => console.info(`🚀 Server running on ${serverUrl.origin}`))

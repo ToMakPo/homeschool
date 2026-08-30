@@ -1,0 +1,89 @@
+[
+  {
+    "tableName": "user",
+    "data": [
+      {
+        "id": "2885a4b5-557e-48fd-b03c-48d711ae2271",
+        "username": "ToMakPo",
+        "hashedPassword": "$2a$10$.odgdhG/e4qnKVe2Xc41I.usL1kmzV2C5ptl9J.sN.6zxLcqScYja",
+        "firstName": "Makai",
+        "lastName": "Post",
+        "displayName": null,
+        "role": "parent",
+        "avatarUrl": null,
+        "passwordReset": 0,
+        "createdAt": "2026-08-30T14:44:05.000Z",
+        "updatedAt": "2026-08-30T14:44:05.000Z"
+      },
+      {
+        "id": "5deca825-0fd7-4b39-b84e-2dbab2c96fad",
+        "username": "KatPo",
+        "hashedPassword": "$2a$10$JHyC1vbB52ttgfza5Lh4aOO9T0ZYAHS6L8ICwbZJ/HG4Sv5Ag77gS",
+        "firstName": "Katherine",
+        "lastName": "Post",
+        "displayName": null,
+        "role": "parent",
+        "avatarUrl": null,
+        "passwordReset": 0,
+        "createdAt": "2026-08-30T14:51:59.000Z",
+        "updatedAt": "2026-08-30T14:51:59.000Z"
+      }
+    ]
+  },
+  {
+    "tableName": "family",
+    "data": []
+  },
+  {
+    "tableName": "subject",
+    "data": []
+  },
+  {
+    "tableName": "assignment",
+    "data": []
+  },
+  {
+    "tableName": "attachment",
+    "data": []
+  },
+  {
+    "tableName": "assignment_attachment",
+    "data": []
+  },
+  {
+    "tableName": "assignment_group",
+    "data": []
+  },
+  {
+    "tableName": "assignment_group_member",
+    "data": []
+  },
+  {
+    "tableName": "comment",
+    "data": []
+  },
+  {
+    "tableName": "comment_attachment",
+    "data": []
+  },
+  {
+    "tableName": "family_member",
+    "data": []
+  },
+  {
+    "tableName": "session",
+    "data": []
+  },
+  {
+    "tableName": "task",
+    "data": []
+  },
+  {
+    "tableName": "task_attachment",
+    "data": []
+  },
+  {
+    "tableName": "task_status",
+    "data": []
+  }
+]

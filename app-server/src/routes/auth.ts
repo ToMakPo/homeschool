@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 
 import pool from '../database/config'
-import { User } from '../utils/types'
+import { User, ValidationError } from '../utils/types'
 import { authenticate, signToken } from '../middleware/auth'
 import { validateUsername, validatePassword, validateName } from '../utils/validation'
 
@@ -32,7 +32,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
 	/// VALIDATE INPUTS ///
 
-	const errors = [] as { field: string; message: string }[]
+	const errors = [] as ValidationError[]
 
 	const usernameValidation = await validateUsername(username)
 	if (!usernameValidation.valid) errors.push({ field: 'username', message: usernameValidation.message })
@@ -46,7 +46,7 @@ router.post('/register', async (req: Request, res: Response) => {
 	const lastNameValidation = await validateName(lastName, 'Last name')
 	if (!lastNameValidation.valid) errors.push({ field: 'lastName', message: lastNameValidation.message })
 
-	const roleValidation = ['parent', 'student'].includes(role)
+	const roleValidation = role !== undefined && ['parent', 'student'].includes(role)
 	if (!roleValidation) errors.push({ field: 'role', message: 'Role must be either "parent" or "student"' })
 
 	if (familyId !== null) {
@@ -64,16 +64,16 @@ router.post('/register', async (req: Request, res: Response) => {
 		const userId = uuidv4()
 		const hashedPassword = await bcrypt.hash(passwordValidation.value!, 10)
 
-		await pool.query('INSERT INTO users (id, username, hashedPassword, firstName, lastName, role) VALUES (?, ?, ?, ?, ?, ?)', [
+		await pool.query('INSERT INTO user (id, username, hashedPassword, firstName, lastName, role) VALUES (?, ?, ?, ?, ?, ?)', [
 			userId,
 			usernameValidation.value!,
 			hashedPassword,
 			firstNameValidation.value!,
 			lastNameValidation.value!,
-			role
+			role as User['role']
 		])
 
-		const newUser = (await pool.query('SELECT * FROM users WHERE id = ?', [userId]).then(result => result[0] as User[]))[0]
+		const newUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [userId]).then(result => result[0] as User[]))[0]
 		if (!newUser) return res.status(500).json({ message: 'Unable to retrieve newly created user.' })
 
 		if (familyId) {
@@ -84,7 +84,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
 		const { accessToken, expiresAt } = signToken(newUser)
 
-		await pool.query('INSERT INTO sessions (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [
+		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [
 			uuidv4(),
 			newUser.id,
 			accessToken,
@@ -116,6 +116,7 @@ router.post('/register', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
 	const username = req.body.username.trim()
 	const password = req.body.password
+	const rememberMe = ['true', '1', 'on', 'yes', 'y'].includes(String(req.body.rememberMe).toLowerCase())
 
 	/// VALIDATE INPUTS
 
@@ -128,24 +129,24 @@ router.post('/login', async (req: Request, res: Response) => {
 	try {
 		const loginFailedResponse = { message: 'Invalid username or password' }
 
-		const [id, hashedPassword] = (
+		const record = (
 			await pool
-				.query('SELECT id, hashedPassword FROM users WHERE username = ?', [username])
-				.then(result => result[0] as [string, string][])
+				.query('SELECT id, hashedPassword AS hash FROM user WHERE username = ?', [username])
+				.then(result => result[0] as { id: string; hash: string }[])
 		)[0]
-		if (!hashedPassword) return res.status(401).json(loginFailedResponse)
+		if (!record) return res.status(401).json(loginFailedResponse)
 
-		const passwordMatch = await bcrypt.compare(password, hashedPassword)
+		const passwordMatch = await bcrypt.compare(password, record.hash)
 		if (!passwordMatch) return res.status(401).json(loginFailedResponse)
 
-		const user = (await pool.query('SELECT * FROM view_user WHERE id = ?', [id]).then(result => result[0] as User[]))[0]
+		const user = (await pool.query('SELECT * FROM view_user WHERE id = ?', [record.id]).then(result => result[0] as User[]))[0]
 		if (!user) return res.status(500).json({ message: 'Unable to retrieve user after successful login.' })
 
 		/// LOG THE USER INTO THE SESSION
 
-		const { accessToken, expiresAt } = signToken(user)
+		const { accessToken, expiresAt } = signToken(user, rememberMe)
 
-		await pool.query('INSERT INTO sessions (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [
+		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [
 			uuidv4(),
 			user.id,
 			accessToken,
@@ -187,7 +188,7 @@ router.post('/logout', authenticate, async (req: Request, res: Response) => {
 
 	try {
 		const token = authHeader.slice(7)
-		await pool.query('DELETE FROM sessions WHERE authToken = ?', [token])
+		await pool.query('DELETE FROM session WHERE authToken = ?', [token])
 
 		// TODO: Check if the user is still logged in on any other sessions.
 		// If not, broadcast to all family members that the user has logged out.
@@ -220,7 +221,7 @@ router.post('/logout-all', authenticate, async (req: Request, res: Response) => 
 	const ignoreToken = (req.body.ignoreToken as string) || ''
 
 	try {
-		await pool.query('DELETE FROM sessions WHERE userId = ? AND authToken != ?', [user.id, ignoreToken])
+		await pool.query('DELETE FROM session WHERE userId = ? AND authToken != ?', [user.id, ignoreToken])
 
 		// TODO: If not ignoring the current session, broadcast to all family members that the user has logged out of all sessions.
 
