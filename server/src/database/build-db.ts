@@ -3,78 +3,83 @@ import fs from 'fs'
 import path from 'path'
 import dotenv from 'dotenv'
 
-// Load environment variables
-dotenv.config()
+// Load environment variables from the .env file in the server root folder
+dotenv.config({ path: path.join(__dirname, '../../.env') })
 
-async function buildDatabase() {
-	if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_PASSWORD) {
-		console.error('❌ Error: Missing database environment variables in .env')
+async function rebuildDatabase() {
+	const sqlFilePath = path.join(__dirname, 'app.sql')
+
+	console.log('Reading app.sql file...')
+	if (!fs.existsSync(sqlFilePath)) {
+		console.error(`Error: Could not find sql file at ${sqlFilePath}`)
 		process.exit(1)
 	}
 
-	const dbName = 'homeschool_app'
-	console.log('🔄 Connecting to MySQL server...')
+	let sqlScript = fs.readFileSync(sqlFilePath, 'utf8')
 
-	// 1. Initial connection without selecting a database
-	const initConnection = await mysql.createConnection({
-		host: process.env.DB_HOST,
-		user: process.env.DB_USER,
-		password: process.env.DB_PASSWORD,
-		port: Number(process.env.DB_PORT) || 3306
+	// Clean up windows style newlines (\r\n) for uniform processing
+	sqlScript = sqlScript.replace(/\r\n/g, '\n')
+
+	// Identify the delimiter block, extract the content inside, and strip the command
+	const delimiterRegex = /DELIMITER\s+\$\$\n([\s\S]*?)DELIMITER\s+;/i
+	const match = sqlScript.match(delimiterRegex)
+
+	let standardStatements: string[] = []
+	let triggerStatements: string[] = []
+
+	if (match) {
+		const triggerBlock = match[1]
+
+		// Split triggers by the custom $$ delimiter and clean them up
+		triggerStatements = triggerBlock
+			.split('$$')
+			.map(cmd => cmd.trim())
+			.filter(cmd => cmd.length > 0)
+
+		// Remove the entire DELIMITER block from the main script
+		sqlScript = sqlScript.replace(delimiterRegex, '')
+	}
+
+	// Process standard SQL statements (Split by semicolon)
+	standardStatements = sqlScript
+		.split(';')
+		.map(cmd => cmd.trim())
+		.filter(cmd => cmd.length > 0)
+
+	// Combine into a single ordered sequence
+	const allStatements = [...standardStatements, ...triggerStatements]
+
+	// Connect using your DB_ADMIN credentials from the .env file
+	console.log(`Connecting to database as ${process.env.DB_ADMIN_USER || 'root'}...`)
+	const connection = await mysql.createConnection({
+		host: process.env.DB_HOST || 'localhost',
+		port: Number(process.env.DB_PORT) || 3306,
+		user: process.env.DB_ADMIN_USER || 'root',
+		password: process.env.DB_ADMIN_PASSWORD || ''
 	})
 
 	try {
-		// 2. Drop and Recreate the database safely using explicit names
-		console.log(`🧹 Dropping database ${dbName} if it exists...`)
-		await initConnection.query(`DROP DATABASE IF EXISTS ${dbName};`)
+		console.log(`Executing ${allStatements.length} SQL statements sequentially...`)
 
-		console.log(`🏗️ Creating database ${dbName}...`)
-		await initConnection.query(`CREATE DATABASE ${dbName} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`)
-
-		// Close the initial setup connection
-		await initConnection.end()
-
-		// 3. Open a NEW connection that explicitly targets our newly created database
-		console.log(`🔌 Reconnecting directly to ${dbName}...`)
-		const appConnection = await mysql.createConnection({
-			host: process.env.DB_HOST,
-			user: process.env.DB_USER,
-			password: process.env.DB_PASSWORD,
-			port: Number(process.env.DB_PORT) || 3306,
-			database: dbName,
-			multipleStatements: true
-		})
-
-		// 4. Read your app.sql file
-		const sqlPath = path.join(__dirname, 'sql', 'app.sql')
-		if (!fs.existsSync(sqlPath)) {
-			throw new Error(`SQL file not found at path: ${sqlPath}`)
+		for (let i = 0; i < allStatements.length; i++) {
+			const statement = allStatements[i]
+			// Print context snippet for debugging if a query fails
+			try {
+				await connection.query(statement)
+			} catch (err: any) {
+				console.error(`\n❌ Failed at statement #${i + 1}:`)
+				console.error(`"${statement.substring(0, 100)}..."`)
+				throw err
+			}
 		}
 
-		console.log('📖 Reading app.sql file...')
-		let sqlScript = fs.readFileSync(sqlPath, 'utf8')
-
-		// 5. Clean the script to remove database declarations and DELIMITER commands
-		console.log('🧹 Cleaning SQL script for Node.js execution...')
-		sqlScript = sqlScript
-			// Remove database creation logic
-			.replace(/DROP DATABASE IF EXISTS\s+homeschool_app;/i, '')
-			.replace(/CREATE DATABASE IF NOT EXISTS\s+homeschool_app\s+CHARACTER SET\s+utf8mb4\s+COLLATE\s+utf8mb4_unicode_ci;/i, '')
-			// Remove "DELIMITER $$" and "DELIMITER ;" commands entirely
-			.replace(/DELIMITER\s+\$\$/gi, '')
-			.replace(/DELIMITER\s+;/gi, '')
-			// Replace instances of the custom delimiter "$$" inside the script back to standard ";"
-			.replace(/\$\$/g, ';')
-
-		console.log('🚀 Building application tables and triggers...')
-		await appConnection.query(sqlScript)
-
-		console.log('✅ Database build completed successfully!')
-		await appConnection.end()
+		console.log('\nDatabase completely dropped and rebuilt with triggers! 🎉')
 	} catch (error) {
-		console.error('❌ Error building database:', error)
+		console.error('Error rebuilding database:', error)
 		process.exit(1)
+	} finally {
+		await connection.end()
 	}
 }
 
-buildDatabase()
+rebuildDatabase()

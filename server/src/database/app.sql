@@ -1,5 +1,6 @@
-DROP DATABASE IF EXISTS homeschoolApp;
-CREATE DATABASE IF NOT EXISTS homeschoolApp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+DROP DATABASE IF EXISTS homeschool_app;
+CREATE DATABASE IF NOT EXISTS homeschool_app CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE homeschool_app;
 
 CREATE TABLE user (
 	id varchar(36) PRIMARY KEY,
