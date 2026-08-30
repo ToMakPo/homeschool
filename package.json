@@ -1,0 +1,21 @@
+{
+	"name": "homeschool-app",
+	"private": true,
+	"author": "Makai Post (post.makai@gmail.com)",
+	"workspaces": [
+		"client",
+		"server"
+	],
+	"scripts": {
+		"dev": "concurrently --names \"server,client\" \"npm run dev -w server\" \"npm run dev -w client\"",
+		"build": "npm run build --workspace=server && npm run build --workspace=client",
+		"db:migrate": "npm run db:migrate -w server",
+		"db:reset": "npm run db:reset -w server"
+	},
+	"devDependencies": {
+		"concurrently": "^8.2.2"
+	},
+	"dependencies": {
+		"socket.io": "^4.8.3"
+	}
+}
