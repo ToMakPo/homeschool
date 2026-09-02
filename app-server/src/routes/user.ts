@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express'
-import pool from '../database/config'
 
+import pool from '../database/config'
 import { authenticate } from '../middleware/auth'
 import { upload } from '../middleware/storage'
-import { validateBoolean, validateEnum, validateName, validateUsername, ValidationResult } from '../utils/validation'
+import { validateBoolean, validateEnum, validateName, validateString, validateUsername, ValidationResult } from '../utils/validation'
 import { apiResponce } from '../utils/api-responces'
 import { User } from '../utils/types'
 
@@ -13,25 +13,22 @@ router.use(authenticate)
 //////////////////////////////////////////
 /// GET THE CURRENT USER'S INFORMATION ///
 //////////////////////////////////////////
-// #region GET /self
+// #region GET /
 /**
  * Gets the current authenticated user's information.
  *
- * @route GET /api/user/self
+ * @route GET /api/user
  * @middleware authenticate
  * @returns {User} The current authenticated user's information.
- * @throws {401} If the user is not authenticated.
- * @throws {404} If the user is not found in the database.
- * @throws {500} If there is an internal server error while fetching the user's information.
  */
-router.get('/self', authenticate, async (req: Request, res: Response) => {
+router.get('/', authenticate, async (req: Request, res: Response) => {
 	const sender = 'GET_USER_SELF'
 
 	const user = req.user
 	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
 
 	try {
-		const foundUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then(res => res[0] as User[]))[0]
+		const foundUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then((res) => res[0] as User[]))[0]
 		if (!foundUser) return res.json(apiResponce(sender, 401, false, 'User not found.'))
 
 		return res.json(apiResponce(sender, 200, true, 'User fetched successfully.', foundUser))
@@ -44,102 +41,80 @@ router.get('/self', authenticate, async (req: Request, res: Response) => {
 ///////////////////////////////
 /// UPDATE USER INFORMATION ///
 ///////////////////////////////
-// #region PATCH /self
+// #region PATCH /
 /**
  * Updates the current authenticated user's information.
  *
- * @route PATCH /api/user/self
+ * @route PATCH /api/user/
  * @middleware authenticate
  * @param {Object} updates - The fields to update.
  * @returns {User} The updated user's information.
- * @throws {400} If any of the input fields are invalid.
- * @throws {401} If the user is not authenticated.
- * @throws {500} If there is an internal server error while updating the user's information.
  */
-router.patch('/self', authenticate, async (req: Request, res: Response) => {
+router.patch('/', authenticate, async (req: Request, res: Response) => {
 	const sender = 'PATCH_USER_SELF'
 
 	const user = req.user
 	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
 
-	const validationResults: ValidationResult<any>[] = []
-	const errors: string[] = []
+	const validations: ValidationResult<any>[] = []
 	const updates: Partial<User> = req.body.updates
 
 	const newValues: Partial<Omit<User, 'id' | 'avatarUrl'>> = {}
 
 	if (updates.username !== undefined) {
 		const usernameValidation = await validateUsername(updates.username, user.id)
-		const { passed, message, ...data } = usernameValidation
-		if (passed) newValues.username = data.value!
-		else errors.push('username')
-		validationResults.push(usernameValidation)
+		newValues.username = usernameValidation.value!
+		validations.push(usernameValidation)
 	}
 
 	if (updates.firstName !== undefined) {
 		const firstNameValidation = await validateName(updates.firstName, 'First name', false)
-		const { passed, message, ...data } = firstNameValidation
-		if (passed) newValues.firstName = data.value!
-		else errors.push('firstName')
-		validationResults.push(firstNameValidation)
+		newValues.firstName = firstNameValidation.value!
+		validations.push(firstNameValidation)
 	}
 
 	if (updates.lastName !== undefined) {
 		const lastNameValidation = await validateName(updates.lastName, 'Last name', false)
-		const { passed, message, ...data } = lastNameValidation
-		if (passed) newValues.lastName = data.value!
-		else errors.push('lastName')
-		validationResults.push(lastNameValidation)
+		newValues.lastName = lastNameValidation.value!
+		validations.push(lastNameValidation)
 	}
 
 	if (updates.displayName !== undefined) {
 		const displayNameValidation = await validateName(updates.displayName, 'Display name', true)
-		const { passed, message, ...data } = displayNameValidation
-		if (passed) newValues.displayName = data.value!
-		else errors.push('displayName')
-		validationResults.push(displayNameValidation)
+		newValues.displayName = displayNameValidation.value!
+		validations.push(displayNameValidation)
 	}
 
-	if (updates.role !== undefined) {
-		const roleValidation = await validateEnum<User['role']>(updates.role, ['parent', 'student'], 'Role')
-		const { passed, message, ...data } = roleValidation
-		if (passed) newValues.role = data.value!
-		else errors.push('role')
-		validationResults.push(roleValidation)
+	if (updates.roleX !== undefined) {
+		const personaValidation = await validateEnum<User['roleX']>(updates.roleX, ['admin', 'parent', 'student'], 'Role')
+		newValues.roleX = personaValidation.value!
+		validations.push(personaValidation)
 	}
 
-	if (updates.isAdmin !== undefined) {
-		const isAdminValidation = await validateBoolean(updates.isAdmin, 'Is Admin')
-		const { passed, message, ...data } = isAdminValidation
-		if (passed) newValues.isAdmin = data.value!
-		else errors.push('isAdmin')
-		validationResults.push(isAdminValidation)
+	if (updates.isAdminX !== undefined) {
+		const isAdminValidation = await validateBoolean(updates.isAdminX, 'Is Admin')
+		newValues.isAdminX = isAdminValidation.value!
+		validations.push(isAdminValidation)
 	}
 
 	if (updates.passwordReset !== undefined) {
 		const passwordResetValidation = await validateBoolean(updates.passwordReset, 'Password Reset')
-		const { passed, message, ...data } = passwordResetValidation
-		if (passed) newValues.passwordReset = data.value!
-		else errors.push('passwordReset')
-		validationResults.push(passwordResetValidation)
+		newValues.passwordReset = passwordResetValidation.value!
+		validations.push(passwordResetValidation)
 	}
 
-	if (errors.length > 0) {
-		return res.json(apiResponce(sender, 401, false, 'Validation errors occurred.', validationResults))
-	}
+	if (validations.some((v) => !v.passed)) return res.json(apiResponce(sender, 401, false, 'Validation failed', { validations }))
 
-	if (Object.keys(newValues).length === 0) {
-		return res.json(apiResponce(sender, 402, false, 'No valid fields to update'))
-	}
+	if (Object.keys(newValues).length === 0) return res.json(apiResponce(sender, 402, false, 'No valid fields to update'))
 
 	const setClause = Object.keys(newValues)
-		.map(key => `${key} = ?`)
+		.map((key) => `${key} = ?`)
 		.join(', ')
 	const values = Object.values(newValues)
 
 	try {
 		await pool.execute(`UPDATE user SET ${setClause} WHERE id = ?`, [...values, user.id])
-		const updatedUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then(res => res[0] as User[]))[0]
+		const updatedUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then((res) => res[0] as User[]))[0]
 
 		// TODO: Broadcast to all family members that the user has updated their information.
 
@@ -162,9 +137,6 @@ router.patch('/self', authenticate, async (req: Request, res: Response) => {
  * @middleware upload.single('avatar')
  * @param {File} avatar - The new avatar image file.
  * @returns {Object} The URL of the updated avatar.
- * @throws {400} If no file is uploaded.
- * @throws {401} If the user is not authenticated.
- * @throws {500} If there is an internal server error while updating the avatar.
  */
 router.patch('/avatar', authenticate, upload.single('avatar'), async (req: Request, res: Response) => {
 	const sender = 'PATCH_USER_AVATAR'
@@ -193,52 +165,48 @@ router.patch('/avatar', authenticate, upload.single('avatar'), async (req: Reque
 ///////////////////////////
 /// DELETE USER ACCOUNT ///
 ///////////////////////////
-// #region DELETE /self
+// #region DELETE /
 /**
  * Deletes the current authenticated user's account or another user's account if the authenticated user is a parent.
  *
- * @route DELETE /api/user/self
+ * @route DELETE /api/user/
  * @middleware authenticate
  * @param {string} [userId] - The ID of the user to delete (optional, only for parents).
  * @returns {Object} A message indicating the result of the operation.
- * @throws {401} If the user is not authenticated or not authorized to delete the specified user.
- * @throws {404} If the user to be deleted is not found in the database.
- * @throws {500} If there is an internal server error while deleting the user's account.
  */
-router.delete('/self', authenticate, async (req: Request, res: Response) => {
+router.delete('/', authenticate, async (req: Request, res: Response) => {
 	const sender = 'DELETE_USER_SELF'
 
 	const user = req.user
 	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
 
-	const force = req.body.force === true
-
-	if (user.role === 'student') {
-		if (force) {
-			await pool.execute('DELETE FROM user WHERE id = ?', [user.id])
-			// TODO: Broadcast to all other family members that the user has left the family.
-			// TODO: Broadcast to all other user sessions that the user has been deleted and logged out.
-			return res.json(apiResponce(sender, 250, true, 'User account deleted successfully.'))
-		} else {
-			return res.json(
-				apiResponce(
-					sender,
-					401,
-					false,
-					'You are not authorized to delete your account. Please contact a parent to delete your account.'
-				)
-			)
-		}
-	}
+	const force = (await validateBoolean(req.body.force, 'Force', true)).value ?? false
+	const promoteId = (await validateString(req.body.promoteId, 'Promote ID', true)).value || null
 
 	try {
-		const otherFamilyMembers = await pool
-			.query('SELECT id, role, isAdmin, createdAt FROM user WHERE familyId = ? AND id != ?', [user.familyId, user.id])
-			.then(res => res[0] as { id: string; role: string; isAdmin: boolean; createdAt: Date }[])
+		// If the user is a student, then do not allow deletion unless forced.
+		if (user.isStudent) {
+			if (force) {
+				await pool.execute('DELETE FROM user WHERE id = ?', [user.id])
 
-		// If there are no other family members, delete the family as well.
-		if (otherFamilyMembers.length === 0) {
-			// If there are no other family members, delete the family as well.
+				// TODO: Broadcast to all other family members that the user has left the family.
+				// TODO: Broadcast to all other user sessions that the user has been deleted and logged out.
+
+				return res.json(apiResponce(sender, 250, true, 'User account deleted successfully.'))
+			} else {
+				return res.json(
+					apiResponce(sender, 401, false, 'You are not authorized to delete your account. Please contact a parent to delete your account.')
+				)
+			}
+		}
+
+		// Get all of the other family members other than the current user.
+		const otherMembers = await pool
+			.query('SELECT * FROM view_user WHERE familyId = ? AND id != ?', [user.familyId, user.id])
+			.then((res) => res[0] as User[])
+
+		// If the user is the only member of the family, then delete the user and the family.
+		if (otherMembers.length === 0) {
 			await pool.execute('DELETE FROM family WHERE id = ?', [user.familyId])
 			await pool.execute('DELETE FROM user WHERE id = ?', [user.id])
 
@@ -247,115 +215,78 @@ router.delete('/self', authenticate, async (req: Request, res: Response) => {
 			return res.json(apiResponce(sender, 200, true, 'User account and family deleted successfully.'))
 		}
 
-		// If you are not an admin, you can delete your account without issue.
-		if (!user.isAdmin) {
-			await pool.execute('DELETE FROM user WHERE id = ?', [user.id])
+		// Get all other parents.
+		const otherParents = otherMembers.filter((m) => m.isParent)
 
-			// TODO: Broadcast to all other family members that the user has left the family.
-			// TODO: Broadcast to all other user sessions that the user has been deleted and logged out.
+		// If you are the only parent, then that means there are only students, so do not allow deletion unlessed force.
+		if (otherParents.length === 0) {
+			if (force) {
+				// If being forced, delete the family, the students, and the user.
+				await pool.execute('DELETE FROM family WHERE id = ?', [user.familyId])
+				await pool.execute('DELETE FROM user WHERE familyId = ?', [user.familyId])
 
-			return res.json(apiResponce(sender, 201, true, 'User account deleted successfully.'))
-		}
+				// TODO: Brodcast to all family member user sessions that the user had been deleted and to log out.
 
-		// If there are other parents that are also admins, you can delete your account without issue.
-		if (otherFamilyMembers.some(member => member.role === 'parent' && member.isAdmin)) {
-			await pool.execute('DELETE FROM user WHERE id = ?', [user.id])
-
-			// TODO: Broadcast to all other family members that the user has left the family.
-			// TODO: Broadcast to all other user sessions that the user has been deleted and logged out.
-
-			return res.json(apiResponce(sender, 202, true, 'User account deleted successfully.'))
-		}
-
-		// If there are other parents that are not admins, you must make one of them an admin before you can delete your account.
-		if (otherFamilyMembers.some(member => member.role === 'parent' && !member.isAdmin)) {
-			const nextParent = otherFamilyMembers
-				.filter(member => member.role === 'parent' && !member.isAdmin)
-				.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0]
-
-			await pool.execute('UPDATE user SET isAdmin = true WHERE id = ?', [nextParent.id])
-
-			// TODO: Broadcast to all family members that the next parent has been made an admin.
-
-			await pool.execute('DELETE FROM user WHERE id = ?', [user.id])
-
-			// TODO: Broadcast to all other family members that the user has left the family.
-			// TODO: Broadcast to all other user sessions that the user has been deleted and logged out.
-
-			return res.json(apiResponce(sender, 203, true, 'User account deleted successfully. The next parent has been made an admin.'))
-		}
-
-		if (force) {
-			// No other parents exist, so you must delete the family and all its students before you can delete your account.
-
-			await pool.execute('DELETE FROM user WHERE familyId = ?', [user.familyId])
-			await pool.execute('DELETE FROM family WHERE id = ?', [user.familyId])
-
-			// TODO: Broadcast to all other user sessions that the user has been deleted and logged out.
-			// TODO: Broadcast to all family members that they have been deleted and logged out.
-
-			return res.json(apiResponce(sender, 251, true, 'User account and family deleted successfully.'))
-		} else {
-			return res.json(
-				apiResponce(
-					sender,
-					402,
-					false,
-					'You are the only parent in the family. To delete your account, you must force delete your account, which will also delete the family and all its students.'
+				return res.json(apiResponce(sender, 251, true, 'The user has been deleted along with the family and other members.'))
+			} else {
+				return res.json(
+					apiResponce(sender, 402, false, 'The user was not able to be deleted due to being the only parent while students exist.')
 				)
-			)
-		}
-	} catch (err) {
-		console.error(err)
-		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
-	}
-})
-
-//////////////////////////////
-/// DELETE STUDENT ACCOUNT ///
-//////////////////////////////
-// #region DELETE /student/:id
-/**
- * Deletes a student account by ID. Only parents can delete student accounts.
- *
- * @route DELETE /api/user/student/:id
- * @middleware authenticate
- * @param {string} id - The ID of the student to delete.
- * @returns {Object} A message indicating the result of the operation.
- * @throws {401} If the user is not authenticated or not authorized to delete the student account.
- * @throws {404} If the student account is not found in the database.
- * @throws {500} If there is an internal server error while deleting the student account.
- */
-router.delete('/student/:id', authenticate, async (req: Request, res: Response) => {
-	const sender = 'DELETE_USER_STUDENT'
-
-	const user = req.user
-	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
-
-	if (user.role !== 'parent') {
-		return res.json(apiResponce(sender, 401, false, 'You are not authorized to delete student accounts.'))
-	}
-
-	const studentId = req.params.id
-	if (!studentId) return res.json(apiResponce(sender, 400, false, 'Student ID is required.'))
-
-	try {
-		const student = (
-			await pool
-				.query('SELECT * FROM user WHERE id = ? AND familyId = ? AND role = ?', [studentId, user.familyId, 'student'])
-				.then(res => res[0] as User[])
-		)[0]
-
-		if (!student) {
-			return res.json(apiResponce(sender, 404, false, 'Student not found.'))
+			}
 		}
 
-		await pool.execute('DELETE FROM user WHERE id = ?', [studentId])
+		// If here, then there are other parents and user is the owner, then someone else needs to be made the owener.
+		if (user.isOwner) {
+			if (promoteId) {
+				const promoteUser = otherMembers.find((m) => m.id === promoteId)
 
-		// TODO: Broadcast to all family members that the student has been deleted.
-		// TODO: Broadcast to all other student sessions that the student has been deleted and logged out.
+				if (!promoteUser) return res.json(apiResponce(sender, 403, false, 'The promote user is not within the family.'))
 
-		return res.json(apiResponce(sender, 200, true, 'Student account deleted successfully.'))
+				if (!promoteUser.isParent) return res.json(apiResponce(sender, 404, false, 'The promote user is not a parent.'))
+
+				await pool.execute('UPDATE user SET role = ? WHERE id = ?', ['owner', promoteId])
+
+				// TODO: Brodcast to family that there is a new owner.
+
+				await pool.execute('DELETE FROM user WHERE id = ?', [user.id])
+
+				// TODO: Brodcast to family that user has left.
+				// TODO: Brodcast to user sessions that user is deleted and to logout.
+
+				return res.json(apiResponce(sender, 201, true, 'Selected parent was promoted and the user has been delted.'))
+			} else if (force) {
+				const promoteUser = (() => {
+					const admin = otherParents
+						.filter((m) => m.isAdminX)
+						.reduce((oldest, current) => (current.createdAt < oldest.createdAt ? current : oldest), null as unknown as User)
+					if (admin) return admin
+
+					return otherParents.reduce((oldest, current) => (current.createdAt < oldest.createdAt ? current : oldest))
+				})()
+
+				await pool.execute('UPDATE user SET role = ? WHERE id = ?', ['owner', promoteUser.id])
+
+				// TODO: Brodcast to family that there is a new owner.
+
+				await pool.execute('DELETE FROM user WHERE id = ?', [user.id])
+
+				// TODO: Brodcast to family that user has left.
+				// TODO: Brodcast to user sessions that user is deleted and to logout.
+
+				return res.json(apiResponce(sender, 252, true, 'Other parent was promoted and the user has been delted.'))
+			} else {
+				return res.json(
+					apiResponce(sender, 405, false, 'The user was not able to be deleted due to being the only admin while other members exist.')
+				)
+			}
+		}
+
+		await pool.execute('DELETE FROM user WHERE id = ?', [user.id])
+
+		// TODO: Brodcast to family that user has left.
+		// TODO: Brodcast to user sessions that user is deleted and to logout.
+
+		return res.json(apiResponce(sender, 202, true, 'Selected parent was promoted and the user has been delted.'))
 	} catch (err) {
 		console.error(err)
 		return res.json(apiResponce(sender, 500, false, 'Internal server error'))

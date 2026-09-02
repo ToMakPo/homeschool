@@ -12,7 +12,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 	return <>{children}</>
 }
 
-function RequireRole({ role, children }: { role: User['role']; children: React.ReactNode }) {
+function RequirePersona({ role, children }: { role: User['role']; children: React.ReactNode }) {
 	const user = useAuth(state => state.user)
 	if (!user || user.role !== role) return <Navigate to='/login' replace />
 	return <>{children}</>
@@ -38,10 +38,10 @@ export default function App() {
 				<Route
 					path='/parent'
 					element={
-						<RequireRole role='parent'>
+						<RequirePersona role='parent'>
 							<h1>Parent Dashboard</h1>
 							<pre>{JSON.stringify(user, null, 2)}</pre>
-						</RequireRole>
+						</RequirePersona>
 					}
 				/>
 
@@ -49,12 +49,12 @@ export default function App() {
 				<Route
 					path='/student'
 					element={
-						<RequireRole role='student'>
+						<RequirePersona role='student'>
 							<div>
 								<h1>Student Dashboard</h1>
 								<pre>{JSON.stringify(user, null, 2)}</pre>
 							</div>
-						</RequireRole>
+						</RequirePersona>
 					}
 				/>
 

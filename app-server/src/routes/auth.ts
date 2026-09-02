@@ -6,15 +6,7 @@ import pool from '../database/config'
 import { User } from '../utils/types'
 import { authenticate, signToken } from '../middleware/auth'
 import { apiResponce } from '../utils/api-responces'
-import {
-	validateUsername,
-	validatePassword,
-	validateName,
-	validateEnum,
-	ValidationResult,
-	validateBoolean,
-	validateString
-} from '../utils/validation'
+import { validateUsername, validatePassword, validateName, ValidationResult, validateBoolean, validateString } from '../utils/validation'
 
 const router = Router()
 
@@ -33,65 +25,55 @@ const router = Router()
  * @param {'parent' | 'student'} role - The role of the new user, either 'parent' or 'student'.
  * @param {string} [familyId] - Optional family ID to associate the new user with an existing family.
  * @returns {Object} An object containing the newly created user and an access token.
- * @throws {400} If any of the input fields are invalid or missing.
- * @throws {500} If there is an internal server error during user creation.
  */
 router.post('/register', async (req: Request, res: Response) => {
 	const sender = 'POST_AUTH_REGISTER'
 	const params = req.body
 
-	/// VALIDATE INPUTS ///
-
-	const validations = {} as ValidationResult<any>[]
-
-	const usernameValidation = await validateUsername(params.username)
-	validations.push(usernameValidation)
-	const username = usernameValidation.value
-
-	const passwordValidation = await validatePassword(params.password)
-	validations.push(passwordValidation)
-	const password = passwordValidation.value
-
-	const firstNameValidation = await validateName(params.firstName, 'First name')
-	validations.push(firstNameValidation)
-	const firstName = firstNameValidation.value
-
-	const lastNameValidation = await validateName(params.lastName, 'Last name')
-	validations.push(lastNameValidation)
-	const lastName = lastNameValidation.value
-
-	const familyIdValidation = await validateString(params.familyId, 'Family ID', true, 36, 36, true)
-	let familyId = familyIdValidation.value
-	validations.push(familyIdValidation)
-
-	if (familyIdValidation.passed && familyId) {
-		const familyExists = await pool
-			.query('SELECT COUNT(*) AS count FROM family WHERE id = ?', [familyId])
-			.then(result => (result[0] as any[])[0].count > 0)
-		if (!familyExists) {
-			validations.splice(-1, 1, { passed: false, message: 'Family ID does not exist', value: familyId, field: 'familyId' })
-		}
-	}
-
-	const roleValidation = await validateEnum(params.role, ['parent', 'student'], 'Role')
-	validations.push(roleValidation)
-	const role = roleValidation.value
-
-	const isAdminValidation = await validateBoolean(params.isAdmin, 'Is Admin')
-	validations.push(isAdminValidation)
-	let isAdmin = isAdminValidation.value as boolean | undefined
-
-	if (validations.some(v => !v.passed)) return res.json(apiResponce(sender, 400, false, 'Validation failed', validations))
-
-	/// CREATE NEW USER
-
 	try {
+		/// VALIDATE INPUTS ///
+
+		const validations = [] as ValidationResult<any>[]
+
+		const usernameValidation = await validateUsername(params.username)
+		validations.push(usernameValidation)
+		const username = usernameValidation.value!
+
+		const passwordValidation = await validatePassword(params.password, params.confirmation)
+		validations.push(passwordValidation)
+		const password = passwordValidation.value!
+
+		const firstNameValidation = await validateName(params.firstName, 'First name')
+		validations.push(firstNameValidation)
+		const firstName = firstNameValidation.value!
+
+		const lastNameValidation = await validateName(params.lastName, 'Last name')
+		validations.push(lastNameValidation)
+		const lastName = lastNameValidation.value!
+
+		const familyIdValidation = await validateString(params.familyId, 'Family ID', true, 36, 36, true)
+		let familyId = familyIdValidation.value!
+		validations.push(familyIdValidation)
+
+		if (familyIdValidation.passed && familyId) {
+			const familyExists = await pool
+				.query('SELECT COUNT(*) AS count FROM family WHERE id = ?', [familyId])
+				.then((result) => (result[0] as any[])[0].count > 0)
+			if (!familyExists) {
+				validations.splice(-1, 1, { passed: false, message: 'Family ID does not exist', value: familyId, field: 'familyId' })
+			}
+		}
+
+		const isAdminValidation = await validateBoolean(params.isAdmin, 'Is Admin')
+		validations.push(isAdminValidation)
+		let isAdmin = isAdminValidation.value as boolean | undefined
+
+		if (validations.some((v) => !v.passed)) return res.json(apiResponce(sender, 400, false, 'Validation failed', { validations }))
+
+		/// CREATE NEW USER
+
 		let familyIsNew = false
 		if (familyId === null) {
-			if (role !== 'parent') {
-				return res.json(apiResponce(sender, 401, false, 'Only parents can create a new family.'))
-			}
-
 			familyId = uuidv4()
 			const familyName = `${lastName} Family`
 			await pool.query('INSERT INTO family (id, name) VALUES (?, ?)', [familyId, familyName])
@@ -102,14 +84,20 @@ router.post('/register', async (req: Request, res: Response) => {
 
 		const userId = uuidv4()
 		const hashedPassword = await bcrypt.hash(password!, 10)
+		const role = 'owner'
 
-		await pool.query(
-			'INSERT INTO user (id, username, hashedPassword, firstName, lastName, familyId, role, isAdmin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-			[userId, username!, hashedPassword, firstName!, lastName!, familyId!, role!, isAdmin!]
-		)
+		await pool.query('INSERT INTO user (id, username, hashedPassword, firstName, lastName, familyId, role) VALUES (?, ?, ?, ?, ?, ?, ?)', [
+			userId,
+			username,
+			hashedPassword,
+			firstName,
+			lastName,
+			familyId,
+			role
+		])
 
-		const newUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [userId]).then(result => result[0] as User[]))[0]
-		if (!newUser) return res.json(apiResponce(sender, 500, false, 'Failed to retrieve newly created user.'))
+		const newUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [userId]).then((result) => result[0] as User[]))[0]
+		if (!newUser) return res.json(apiResponce(sender, 501, false, 'Failed to retrieve newly created user.'))
 
 		if (!familyIsNew) {
 			// TODO: Broadcast to all family members that a new member has joined the family.
@@ -117,20 +105,17 @@ router.post('/register', async (req: Request, res: Response) => {
 
 		const { accessToken, expiresAt } = signToken(newUser)
 
-		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [
-			uuidv4(),
-			newUser.id,
-			accessToken,
-			expiresAt
-		])
+		const queryParams = [uuidv4(), newUser.id, accessToken, expiresAt]
+		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', queryParams)
 
 		// TODO: Broadcast to all family members that the user has logged in.
 		// TODO: Once email verification is implemented, send a verification email to the new user.
 
-		return res.status(201).json({ user: newUser, accessToken })
+		const message = familyIsNew ? 'New user and new family created.' : 'New user created and added to family.'
+		return res.json(apiResponce(sender, 200, true, message, { user: newUser, accessToken }))
 	} catch (error) {
 		console.error(error)
-		return res.status(500).json({ message: 'An error occurred while creating the user.', code: 'USER_CREATION_ERROR' })
+		return res.json(apiResponce(sender, 500, false, 'An error occurred while creating the user.', error))
 	}
 })
 
@@ -145,56 +130,51 @@ router.post('/register', async (req: Request, res: Response) => {
  * @param {string} username - The user's username.
  * @param {string} password - The user's password.
  * @returns {Object} An object containing the authenticated user and access token.
- * @throws {400} If the username or password is missing.
- * @throws {401} If the username or password is incorrect.
- * @throws {500} If there is an internal server error during login.
  */
 router.post('/login', async (req: Request, res: Response) => {
+	const sender = 'POST_AUTH_LOGIN'
+
 	const username = req.body.username.trim()
 	const password = req.body.password
 	const rememberMe = ['true', '1', 'on', 'yes', 'y'].includes(String(req.body.rememberMe).toLowerCase())
 
 	/// VALIDATE INPUTS
 
-	const errors = [] as { field: string; message: string }[]
-	if (!username) errors.push({ field: 'username', message: 'Username is required' })
-	if (!password) errors.push({ field: 'password', message: 'Password is required' })
+	const validations = [] as ValidationResult<any>[]
 
-	if (errors.length > 0) return res.status(400).json({ errors })
+	validations.push({ passed: !!username, message: username ? 'Username provided' : 'Username is required', field: 'username' })
+	validations.push({ passed: !!password, message: password ? 'Password provided' : 'Password is required', field: 'password' })
+
+	if (validations.some((v) => !v.passed)) return res.json(apiResponce(sender, 400, false, 'Validation failed', { validations }))
 
 	try {
-		const loginFailedResponse = { message: 'Invalid username or password' }
+		const loginFailedResponse = apiResponce(sender, 401, false, 'Invalid username or password')
 
 		const record = (
 			await pool
 				.query('SELECT id, hashedPassword AS hash FROM user WHERE username = ?', [username])
-				.then(result => result[0] as { id: string; hash: string }[])
+				.then((result) => result[0] as { id: string; hash: string }[])
 		)[0]
-		if (!record) return res.status(401).json(loginFailedResponse)
+		if (!record) return res.json(loginFailedResponse)
 
 		const passwordMatch = await bcrypt.compare(password, record.hash)
-		if (!passwordMatch) return res.status(401).json(loginFailedResponse)
+		if (!passwordMatch) return res.json(loginFailedResponse)
 
-		const user = (await pool.query('SELECT * FROM view_user WHERE id = ?', [record.id]).then(result => result[0] as User[]))[0]
-		if (!user) return res.status(500).json({ message: 'Unable to retrieve user after successful login.' })
+		const user = (await pool.query('SELECT * FROM view_user WHERE id = ?', [record.id]).then((result) => result[0] as User[]))[0]
+		if (!user) return res.json(apiResponce(sender, 501, false, 'Unable to retrieve user after successful login.'))
 
-		/// LOG THE USER INTO THE SESSION
+		/// USER PASSED LOGIN VALIDATION | LOG THE USER IN
 
 		const { accessToken, expiresAt } = signToken(user, rememberMe)
 
-		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [
-			uuidv4(),
-			user.id,
-			accessToken,
-			expiresAt
-		])
+		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [uuidv4(), user.id, accessToken, expiresAt])
 
 		// TODO: Broadcast to all family members that the user has logged in.
 
-		return res.status(200).json({ user, accessToken })
+		return res.json(apiResponce(sender, 200, true, 'User was logged in.', { user, accessToken }))
 	} catch (error) {
 		console.error(error)
-		return res.status(500).json({ message: 'An error occurred while logging in.', code: 'LOGIN_ERROR' })
+		return res.json(apiResponce(sender, 500, false, 'An error occurred while logging in.', error))
 	}
 })
 
@@ -214,12 +194,14 @@ router.post('/login', async (req: Request, res: Response) => {
  * @throws {500} If there is an internal server error during logout.
  */
 router.post('/logout', authenticate, async (req: Request, res: Response) => {
+	const sender = 'POST_AUTH_LOGOUT'
+
 	const user = req.user
-	if (!user) return res.status(401).json({ message: 'User not authenticated' })
+	if (!user) return res.json(apiResponce(sender, 400, false, 'User not authenticated'))
 
 	const authHeader = req.headers.authorization
 	if (!authHeader?.startsWith('Bearer ')) {
-		return res.status(401).json({ message: 'No token provided' })
+		return res.json(apiResponce(sender, 401, false, 'No token provided'))
 	}
 
 	try {
@@ -229,10 +211,10 @@ router.post('/logout', authenticate, async (req: Request, res: Response) => {
 		// TODO: Check if the user is still logged in on any other sessions.
 		// If not, broadcast to all family members that the user has logged out.
 
-		return res.status(200).json({ message: 'Logged out successfully' })
+		return res.json(apiResponce(sender, 200, true, 'Logged out successfully'))
 	} catch (error) {
 		console.error(error)
-		return res.status(500).json({ message: 'An error occurred while logging out.', code: 'LOGOUT_ERROR' })
+		return res.json(apiResponce(sender, 500, false, 'An error occurred while logging out.', error))
 	}
 })
 
@@ -264,7 +246,10 @@ router.post('/logout-all', authenticate, async (req: Request, res: Response) => 
 		return res.status(200).json({ message: 'Logged out of all sessions successfully' })
 	} catch (error) {
 		console.error(error)
-		return res.status(500).json({ message: 'An error occurred while logging out of all sessions.', code: 'LOGOUT_ALL_ERROR' })
+		return res.status(500).json({
+			message: 'An error occurred while logging out of all sessions.',
+			code: 'LOGOUT_ALL_ERROR'
+		})
 	}
 })
 
@@ -306,29 +291,56 @@ router.patch('/password', authenticate, async (req: Request, res: Response) => {
 
 	const { currentPassword, newPassword, confirmation } = req.body
 
-	if (!currentPassword) return res.status(400).json({ passed: false, message: 'Current password is required', field: 'currentPassword' })
-	if (!newPassword) return res.status(400).json({ passed: false, message: 'New password is required', field: 'newPassword' })
-	if (!confirmation) return res.status(400).json({ passed: false, message: 'Password confirmation is required', field: 'confirmation' })
+	if (!currentPassword)
+		return res.status(400).json({
+			passed: false,
+			message: 'Current password is required',
+			field: 'currentPassword'
+		})
+	if (!newPassword)
+		return res.status(400).json({
+			passed: false,
+			message: 'New password is required',
+			field: 'newPassword'
+		})
+	if (!confirmation)
+		return res.status(400).json({
+			passed: false,
+			message: 'Password confirmation is required',
+			field: 'confirmation'
+		})
 
 	if (newPassword !== confirmation)
-		return res.status(400).json({ passed: false, message: 'New password and confirmation do not match', field: 'confirmation' })
+		return res.status(400).json({
+			passed: false,
+			message: 'New password and confirmation do not match',
+			field: 'confirmation'
+		})
 
 	const { passed, message, value } = await validatePassword(newPassword)
 
 	if (!passed) return res.status(400).json({ passed: false, message, field: 'newPassword' })
 
 	try {
-		const storedHash = await pool.query('SELECT password FROM user WHERE id = ?', [user.id]).then(res => (res[0] as any[])[0].password)
+		const storedHash = await pool.query('SELECT password FROM user WHERE id = ?', [user.id]).then((res) => (res[0] as any[])[0].password)
 
 		const isMatch = await bcrypt.compare(currentPassword, storedHash)
 
-		if (!isMatch) return res.status(400).json({ passed: false, message: 'Current password is incorrect', field: 'currentPassword' })
+		if (!isMatch)
+			return res.status(400).json({
+				passed: false,
+				message: 'Current password is incorrect',
+				field: 'currentPassword'
+			})
 
 		const newHash = await bcrypt.hash(value!, 10)
 
 		await pool.execute('UPDATE user SET password = ? WHERE id = ?', [newHash, user.id])
 
-		return res.json({ passed: true, message: 'Password changed successfully' })
+		return res.json({
+			passed: true,
+			message: 'Password changed successfully'
+		})
 	} catch (err) {
 		console.error(err)
 		return res.status(500).json({ passed: false, message: 'Internal server error' })

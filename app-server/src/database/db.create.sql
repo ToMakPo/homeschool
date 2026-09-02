@@ -19,8 +19,7 @@ CREATE TABLE user (
 		'Optional display name for the user. If not provided, the first name will be 
 		used as the display name.',
 	familyId varchar(36) DEFAULT NULL COMMENT 'The ID of the family the user belongs to. This can be NULL if the user is not part of a family.',
-	role ENUM('parent', 'student') NOT NULL,
-	isAdmin BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Indicates whether the user has administrative privileges.',
+	role ENUM('owner', 'admin', 'parent', 'student') NOT NULL,
 	avatarUrl varchar(512) DEFAULT NULL,
 	passwordReset BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Indicates whether the user is required to reset their password upon next login.',
 	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -280,8 +279,14 @@ SELECT
 	u.lastName,
 	u.displayName,
 	u.familyId,
-	u.role,
-	u.isAdmin,
+	u.role, 
+	CAST(u.role IN ('student') AS BOOLEAN) AS isStudent,
+	CAST(u.role IN ('owner', 'admin', 'parent') AS BOOLEAN) AS isParent,
+	CAST(u.role IN ('owner', 'admin') AS BOOLEAN) AS isAdmin,
+	CAST(u.role IN ('owner') AS BOOLEAN) AS isOwner,
 	u.avatarUrl,
-	u.passwordReset
+	u.passwordReset,
+	u.createdAt
 FROM user u;
+
+CREATE INDEX idx_user_familyId ON user(familyId);

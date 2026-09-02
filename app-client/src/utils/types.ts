@@ -1,8 +1,6 @@
 export interface Family {
 	id: string
 	name: string
-	ownerId: string
-	joinCode: string
 }
 
 export interface User {
@@ -12,8 +10,12 @@ export interface User {
 	lastName: string
 	displayName: string | null
 	familyId: string | null
-	role: 'parent' | 'student'
-	isAdmin: boolean
+	roleX: 'owner' | 'admin' | 'parent' | 'student'
+	isStudent: boolean
+	isParent: boolean
+	isAdminX: boolean
+	isOwner: boolean
 	avatarUrl: string | null
 	passwordReset: boolean
+	createdAt: Date
 }
