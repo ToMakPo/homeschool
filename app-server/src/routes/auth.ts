@@ -3,9 +3,18 @@ import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 
 import pool from '../database/config'
-import { User, ValidationError } from '../utils/types'
+import { User } from '../utils/types'
 import { authenticate, signToken } from '../middleware/auth'
-import { validateUsername, validatePassword, validateName } from '../utils/validation'
+import { apiResponce } from '../utils/api-responces'
+import {
+	validateUsername,
+	validatePassword,
+	validateName,
+	validateEnum,
+	ValidationResult,
+	validateBoolean,
+	validateString
+} from '../utils/validation'
 
 const router = Router()
 
@@ -28,57 +37,81 @@ const router = Router()
  * @throws {500} If there is an internal server error during user creation.
  */
 router.post('/register', async (req: Request, res: Response) => {
-	const { username, password, firstName, lastName, role, familyId = null } = req.body
+	const sender = 'POST_AUTH_REGISTER'
+	const params = req.body
 
 	/// VALIDATE INPUTS ///
 
-	const errors = [] as ValidationError[]
+	const validations = {} as ValidationResult<any>[]
 
-	const usernameValidation = await validateUsername(username)
-	if (!usernameValidation.valid) errors.push({ field: 'username', message: usernameValidation.message })
+	const usernameValidation = await validateUsername(params.username)
+	validations.push(usernameValidation)
+	const username = usernameValidation.value
 
-	const passwordValidation = await validatePassword(password)
-	if (!passwordValidation.valid) errors.push({ field: 'password', message: passwordValidation.message })
+	const passwordValidation = await validatePassword(params.password)
+	validations.push(passwordValidation)
+	const password = passwordValidation.value
 
-	const firstNameValidation = await validateName(firstName, 'First name')
-	if (!firstNameValidation.valid) errors.push({ field: 'firstName', message: firstNameValidation.message })
+	const firstNameValidation = await validateName(params.firstName, 'First name')
+	validations.push(firstNameValidation)
+	const firstName = firstNameValidation.value
 
-	const lastNameValidation = await validateName(lastName, 'Last name')
-	if (!lastNameValidation.valid) errors.push({ field: 'lastName', message: lastNameValidation.message })
+	const lastNameValidation = await validateName(params.lastName, 'Last name')
+	validations.push(lastNameValidation)
+	const lastName = lastNameValidation.value
 
-	const roleValidation = role !== undefined && ['parent', 'student'].includes(role)
-	if (!roleValidation) errors.push({ field: 'role', message: 'Role must be either "parent" or "student"' })
+	const familyIdValidation = await validateString(params.familyId, 'Family ID', true, 36, 36, true)
+	let familyId = familyIdValidation.value
+	validations.push(familyIdValidation)
 
-	if (familyId !== null) {
+	if (familyIdValidation.passed && familyId) {
 		const familyExists = await pool
 			.query('SELECT COUNT(*) AS count FROM family WHERE id = ?', [familyId])
 			.then(result => (result[0] as any[])[0].count > 0)
-		if (!familyExists) errors.push({ field: 'familyId', message: 'Provided familyId does not exist.' })
+		if (!familyExists) {
+			validations.splice(-1, 1, { passed: false, message: 'Family ID does not exist', value: familyId, field: 'familyId' })
+		}
 	}
 
-	if (errors.length > 0) return res.status(400).json({ errors })
+	const roleValidation = await validateEnum(params.role, ['parent', 'student'], 'Role')
+	validations.push(roleValidation)
+	const role = roleValidation.value
+
+	const isAdminValidation = await validateBoolean(params.isAdmin, 'Is Admin')
+	validations.push(isAdminValidation)
+	let isAdmin = isAdminValidation.value as boolean | undefined
+
+	if (validations.some(v => !v.passed)) return res.json(apiResponce(sender, 400, false, 'Validation failed', validations))
 
 	/// CREATE NEW USER
 
 	try {
-		const userId = uuidv4()
-		const hashedPassword = await bcrypt.hash(passwordValidation.value!, 10)
+		let familyIsNew = false
+		if (familyId === null) {
+			if (role !== 'parent') {
+				return res.json(apiResponce(sender, 401, false, 'Only parents can create a new family.'))
+			}
 
-		await pool.query('INSERT INTO user (id, username, hashedPassword, firstName, lastName, role) VALUES (?, ?, ?, ?, ?, ?)', [
-			userId,
-			usernameValidation.value!,
-			hashedPassword,
-			firstNameValidation.value!,
-			lastNameValidation.value!,
-			role as User['role']
-		])
+			familyId = uuidv4()
+			const familyName = `${lastName} Family`
+			await pool.query('INSERT INTO family (id, name) VALUES (?, ?)', [familyId, familyName])
+
+			isAdmin = true
+			familyIsNew = true
+		}
+
+		const userId = uuidv4()
+		const hashedPassword = await bcrypt.hash(password!, 10)
+
+		await pool.query(
+			'INSERT INTO user (id, username, hashedPassword, firstName, lastName, familyId, role, isAdmin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+			[userId, username!, hashedPassword, firstName!, lastName!, familyId!, role!, isAdmin!]
+		)
 
 		const newUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [userId]).then(result => result[0] as User[]))[0]
-		if (!newUser) return res.status(500).json({ message: 'Unable to retrieve newly created user.' })
+		if (!newUser) return res.json(apiResponce(sender, 500, false, 'Failed to retrieve newly created user.'))
 
-		if (familyId) {
-			await pool.query('INSERT INTO family_member (familyId, userId) VALUES (?, ?)', [familyId, userId])
-
+		if (!familyIsNew) {
 			// TODO: Broadcast to all family members that a new member has joined the family.
 		}
 
@@ -90,6 +123,9 @@ router.post('/register', async (req: Request, res: Response) => {
 			accessToken,
 			expiresAt
 		])
+
+		// TODO: Broadcast to all family members that the user has logged in.
+		// TODO: Once email verification is implemented, send a verification email to the new user.
 
 		return res.status(201).json({ user: newUser, accessToken })
 	} catch (error) {
@@ -229,6 +265,73 @@ router.post('/logout-all', authenticate, async (req: Request, res: Response) => 
 	} catch (error) {
 		console.error(error)
 		return res.status(500).json({ message: 'An error occurred while logging out of all sessions.', code: 'LOGOUT_ALL_ERROR' })
+	}
+})
+
+router.get('/validate/username/:username/:userId?', async (req: Request, res: Response) => {
+	const username = req.params.username
+	const userId = req.params.userId
+
+	const usernameValidation = await validateUsername(username, userId)
+	return res.status(usernameValidation.passed ? 200 : 400).json({ field: 'username', message: usernameValidation.message })
+})
+
+router.get('/validate/password/:password/:confirmation?', async (req: Request, res: Response) => {
+	const password = req.params.password
+	const confirmation = req.params.confirmation
+
+	const passwordValidation = await validatePassword(password, confirmation)
+	return res.status(passwordValidation.passed ? 200 : 400).json({ field: 'password', message: passwordValidation.message })
+})
+
+////////////////////////////
+/// UPDATE USER PASSWORD ///
+////////////////////////////
+// #region PATCH /password
+/**
+ * Updates the current authenticated user's password.
+ *
+ * @route PATCH /api/user/password
+ * @middleware authenticate
+ * @param {string} currentPassword - The user's current password.
+ * @param {string} newPassword - The new password to set.
+ * @returns {Object} A message indicating the result of the operation.
+ * @throws {400} If the current password is incorrect or the new password is invalid.
+ * @throws {401} If the user is not authenticated.
+ * @throws {500} If there is an internal server error while updating the password.
+ */
+router.patch('/password', authenticate, async (req: Request, res: Response) => {
+	const user = req.user
+	if (!user) return res.status(401).json({ passed: false, message: 'Unauthorized', field: 'user' })
+
+	const { currentPassword, newPassword, confirmation } = req.body
+
+	if (!currentPassword) return res.status(400).json({ passed: false, message: 'Current password is required', field: 'currentPassword' })
+	if (!newPassword) return res.status(400).json({ passed: false, message: 'New password is required', field: 'newPassword' })
+	if (!confirmation) return res.status(400).json({ passed: false, message: 'Password confirmation is required', field: 'confirmation' })
+
+	if (newPassword !== confirmation)
+		return res.status(400).json({ passed: false, message: 'New password and confirmation do not match', field: 'confirmation' })
+
+	const { passed, message, value } = await validatePassword(newPassword)
+
+	if (!passed) return res.status(400).json({ passed: false, message, field: 'newPassword' })
+
+	try {
+		const storedHash = await pool.query('SELECT password FROM user WHERE id = ?', [user.id]).then(res => (res[0] as any[])[0].password)
+
+		const isMatch = await bcrypt.compare(currentPassword, storedHash)
+
+		if (!isMatch) return res.status(400).json({ passed: false, message: 'Current password is incorrect', field: 'currentPassword' })
+
+		const newHash = await bcrypt.hash(value!, 10)
+
+		await pool.execute('UPDATE user SET password = ? WHERE id = ?', [newHash, user.id])
+
+		return res.json({ passed: true, message: 'Password changed successfully' })
+	} catch (err) {
+		console.error(err)
+		return res.status(500).json({ passed: false, message: 'Internal server error' })
 	}
 })
 

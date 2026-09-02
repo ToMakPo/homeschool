@@ -1,13 +1,3 @@
-export interface User {
-	id: string
-	username: string
-	firstName: string
-	lastName: string
-	displayName: string | null
-	role: 'parent' | 'student'
-	avatarUrl: string | null
-}
-
 export interface Family {
 	id: string
 	name: string
@@ -15,13 +5,15 @@ export interface Family {
 	joinCode: string
 }
 
-export interface FamilyMember extends Omit<User, 'id'> {
+export interface User {
 	id: string
-	familyId: string
-	userId: string
-}
-
-export interface ValidationError {
-	field: string
-	message: string
+	username: string
+	firstName: string
+	lastName: string
+	displayName: string | null
+	familyId: string | null
+	role: 'parent' | 'student'
+	isAdmin: boolean
+	avatarUrl: string | null
+	passwordReset: boolean
 }

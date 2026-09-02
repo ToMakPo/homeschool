@@ -69,7 +69,7 @@ const LoginPage = () => {
 				<h1>Login</h1>
 
 				{generalError && (
-					<div className='general-error-message' style={{ color: 'red' }}>
+					<div id='general-error-message' style={{ color: 'red' }}>
 						{generalError}
 					</div>
 				)}

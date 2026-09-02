@@ -3,7 +3,9 @@ import { v4 as uuidv4 } from 'uuid'
 
 import pool from '../database/config'
 import { authenticate } from '../middleware/auth'
+import { apiResponce } from '../utils/api-responces'
 import { Family, FamilyMember } from '../utils/types'
+import { validateString } from '../utils/validation'
 
 const router = Router()
 router.use(authenticate)
@@ -26,16 +28,18 @@ router.use(authenticate)
  * @throws {500} If there is an internal server error while fetching the family members.
  */
 router.get('/byId/:familyId', authenticate, async (req: Request, res: Response) => {
+	const sender = 'GET_FAMILY_BY_FAMILY_ID'
+
 	const user = req.user
-	if (!user) return res.status(401).json({ message: 'Unauthorized' })
+	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
 
 	const { familyId } = req.params
-	if (!familyId) return res.status(400).json({ message: 'Family ID is required' })
+	if (!familyId) return res.json(apiResponce(sender, 401, false, 'Family ID is required'))
 
 	try {
 		// Fetch the family data for the given familyId.
 		const family = (await pool.query('SELECT * FROM family WHERE id = ?', [familyId]).then(res => res[0] as Family[]))[0]
-		if (!family) return res.status(404).json({ message: 'Family not found' })
+		if (!family) return res.json(apiResponce(sender, 402, false, 'Family not found'))
 
 		// Fetch all family members for the given familyId.
 		const members = await pool
@@ -46,18 +50,18 @@ router.get('/byId/:familyId', authenticate, async (req: Request, res: Response) 
 			// If no members are found, delete the family and return a 404 response.
 			pool.execute('DELETE FROM family WHERE id = ?', [familyId])
 
-			return res.status(404).json({ message: 'No members found for this family' })
+			return res.json(apiResponce(sender, 403, false, 'No members found for this family'))
 		}
 
 		const isUserInFamily = members.some(m => m.userId === user.id)
 		if (!isUserInFamily) {
-			return res.status(403).json({ message: 'You are not a member of this family' })
+			return res.json(apiResponce(sender, 404, false, 'You are not a member of this family'))
 		}
 
-		return res.json({ family, members })
+		return res.json(apiResponce(sender, 200, true, 'Family fetched successfully.', { family, members }))
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Internal server error' })
+		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -75,18 +79,20 @@ router.get('/byId/:familyId', authenticate, async (req: Request, res: Response) 
  * @throws {500} If there is an internal server error while fetching the family.
  */
 router.get('/for-user', authenticate, async (req: Request, res: Response) => {
+	const sender = 'GET_FAMILIES_FOR_USER'
+
 	const user = req.user
-	if (!user) return res.status(401).json({ message: 'Unauthorized' })
+	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
 
 	try {
 		const families = await pool
 			.query('SELECT * FROM family WHERE id IN (SELECT familyId FROM family_member WHERE userId = ?)', [user.id])
 			.then(res => res[0] as Family[])
 
-		return res.json(families)
+		return res.json(apiResponce(sender, 200, true, 'Families fetched successfully.', families))
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Internal server error' })
+		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -106,31 +112,42 @@ router.get('/for-user', authenticate, async (req: Request, res: Response) => {
  * @throws {500} If there is an internal server error while creating the family.
  */
 router.put('/create', authenticate, async (req: Request, res: Response) => {
+	const sender = 'CREATE_FAMILY'
+
 	const user = req.user
-	if (!user) return res.status(401).json({ message: 'Unauthorized' })
+	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
 
-	if (!req.body) return res.status(400).json({ message: 'Family name is required' })
-
-	if (typeof req.body !== 'string') return res.status(400).json({ message: 'Family name must be a string' })
-
-	const name = req.body.trim()
-
-	if (name.length < 3) return res.status(400).json({ message: 'Family name must be at least 3 characters long' })
-
-	if (name.length > 50) return res.status(400).json({ message: 'Family name must be at most 50 characters long' })
+	const nameValidation = await validateString(req.body.name, 'Family name', true, 3, 50)
+	if (!nameValidation.passed) {
+		return res.json(apiResponce(sender, 401, false, nameValidation.message || 'Invalid family name', nameValidation))
+	}
 
 	try {
-		const id = uuidv4()
+		const familyId = uuidv4()
 		const joinCode = uuidv4()
+		const memberId = uuidv4()
 
-		await pool.execute('INSERT INTO family (id, name, ownerId, joinCode) VALUES (?, ?, ?, ?)', [id, name, user.id, joinCode])
+		await pool.execute('INSERT INTO family (id, name, ownerId, joinCode) VALUES (?, ?, ?, ?)', [
+			familyId,
+			nameValidation.value!,
+			user.id,
+			joinCode
+		])
+		await pool.execute('INSERT INTO family_member (id, familyId, userId) VALUES (?, ?, ?)', [memberId, familyId, user.id])
 
-		await pool.execute('INSERT INTO family_member (id, familyId, userId) VALUES (?, ?, ?)', [uuidv4(), id, user.id])
+		const newFamily: Family = (await pool.query('SELECT * FROM family WHERE id = ?', [familyId]).then(res => res[0] as Family[]))[0]
+		if (!newFamily) return res.json(apiResponce(sender, 402, false, 'Failed to create family'))
+		const newMember: FamilyMember = (
+			await pool
+				.query('SELECT * FROM view_family_member WHERE familyId = ? AND userId = ?', [familyId, user.id])
+				.then(res => res[0] as FamilyMember[])
+		)[0]
+		if (!newMember) return res.json(apiResponce(sender, 403, false, 'Failed to create family member'))
 
-		return res.status(201).json({ id, name, ownerId: user.id, joinCode })
+		return res.json(apiResponce(sender, 200, true, 'Family created successfully.', { family: newFamily, member: newMember }))
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Internal server error' })
+		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -151,31 +168,33 @@ router.put('/create', authenticate, async (req: Request, res: Response) => {
  * @throws {500} If there is an internal server error while joining the family.
  */
 router.put('/join', authenticate, async (req: Request, res: Response) => {
+	const sender = 'JOIN_FAMILY'
+
 	const user = req.user
-	if (!user) return res.status(401).json({ message: 'Unauthorized' })
+	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
 
 	const joinCode = req.body.joinCode
-	if (!joinCode) return res.status(400).json({ message: 'Join code is required' })
+	if (!joinCode) return res.json(apiResponce(sender, 401, false, 'Join code is required'))
 
 	try {
 		const family = (await pool.query('SELECT * FROM family WHERE joinCode = ?', [joinCode]).then(res => res[0] as Family[]))[0]
-		if (!family) return res.status(404).json({ message: 'Family not found' })
+		if (!family) return res.json(apiResponce(sender, 402, false, 'Family not found'))
 
 		const existingMember = (
 			await pool
 				.query('SELECT * FROM family_member WHERE familyId = ? AND userId = ?', [family.id, user.id])
 				.then(res => res[0] as FamilyMember[])
 		)[0]
-		if (existingMember) return res.status(400).json({ message: 'You are already a member of this family' })
+		if (existingMember) return res.json(apiResponce(sender, 403, false, 'You are already a member of this family'))
 
 		await pool.execute('INSERT INTO family_member (id, familyId, userId) VALUES (?, ?, ?)', [uuidv4(), family.id, user.id])
 
 		// TODO: Broadcast to all family members that a new member has joined the family.
 
-		return res.status(200).json({ message: 'Successfully joined the family', family })
+		return res.json(apiResponce(sender, 200, true, 'Successfully joined the family', { family }))
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Internal server error' })
+		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -198,36 +217,38 @@ router.put('/join', authenticate, async (req: Request, res: Response) => {
  * @throws {500} If there is an internal server error while updating the family name.
  */
 router.patch('/name', authenticate, async (req: Request, res: Response) => {
+	const sender = 'UPDATE_FAMILY_NAME'
+
 	const user = req.user
-	if (!user) return res.status(401).json({ message: 'Unauthorized' })
+	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
 
 	const familyId = req.body.familyId
-	if (!familyId) return res.status(400).json({ message: 'Family ID is required' })
+	if (!familyId) return res.json(apiResponce(sender, 401, false, 'Family ID is required'))
 
-	if (!req.body.newName) return res.status(400).json({ message: 'New family name is required' })
+	if (!req.body.newName) return res.json(apiResponce(sender, 402, false, 'New family name is required'))
 
-	if (typeof req.body.newName !== 'string') return res.status(400).json({ message: 'New family name must be a string' })
+	if (typeof req.body.newName !== 'string') return res.json(apiResponce(sender, 403, false, 'New family name must be a string'))
 
 	const newName = req.body.newName.trim()
 
-	if (newName.length < 3) return res.status(400).json({ message: 'Family name must be at least 3 characters long' })
+	if (newName.length < 3) return res.json(apiResponce(sender, 404, false, 'Family name must be at least 3 characters long'))
 
-	if (newName.length > 50) return res.status(400).json({ message: 'Family name must be at most 50 characters long' })
+	if (newName.length > 50) return res.json(apiResponce(sender, 405, false, 'Family name must be at most 50 characters long'))
 
 	try {
 		const family = (await pool.query('SELECT * FROM family WHERE id = ?', [familyId]).then(res => res[0] as Family[]))[0]
-		if (!family) return res.status(404).json({ message: 'Family not found' })
+		if (!family) return res.json(apiResponce(sender, 406, false, 'Family not found'))
 
-		if (family.ownerId !== user.id) return res.status(403).json({ message: 'Only the family owner can update the family name' })
+		if (family.ownerId !== user.id) return res.json(apiResponce(sender, 407, false, 'Only the family owner can update the family name'))
 
 		await pool.execute('UPDATE family SET name = ? WHERE id = ?', [newName, family.id])
 
 		// TODO: Broadcast to all family members that the family name has been updated.
 
-		return res.status(200).json({ message: 'Family name updated successfully', newName })
+		return res.json(apiResponce(sender, 200, true, 'Family name updated successfully', { newName }))
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Internal server error' })
+		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -249,11 +270,13 @@ router.patch('/name', authenticate, async (req: Request, res: Response) => {
  * @throws {500} If there is an internal server error while updating the join code.
  */
 router.patch('/join-code', authenticate, async (req: Request, res: Response) => {
+	const sender = 'UPDATE_FAMILY_JOIN_CODE'
+
 	const user = req.user
-	if (!user) return res.status(401).json({ message: 'Unauthorized' })
+	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
 
 	const familyId = req.body.familyId
-	if (!familyId) return res.status(400).json({ message: 'Family ID is required' })
+	if (!familyId) return res.json(apiResponce(sender, 401, false, 'Family ID is required'))
 
 	const newJoinCode = uuidv4()
 
@@ -261,18 +284,18 @@ router.patch('/join-code', authenticate, async (req: Request, res: Response) => 
 		const family = (
 			await pool.query('SELECT * FROM family WHERE id = ? AND ownerId = ?', [familyId, user.id]).then(res => res[0] as Family[])
 		)[0]
-		if (!family) return res.status(404).json({ message: 'Family not found' })
+		if (!family) return res.json(apiResponce(sender, 403, false, 'Family not found'))
 
-		if (family.ownerId !== user.id) return res.status(403).json({ message: 'Only the family owner can update the join code' })
+		if (family.ownerId !== user.id) return res.json(apiResponce(sender, 404, false, 'Only the family owner can update the join code'))
 
 		await pool.execute('UPDATE family SET joinCode = ? WHERE id = ?', [newJoinCode, family.id])
 
 		// TODO: Broadcast to all family members that the join code has been updated.
 
-		return res.status(200).json({ message: 'Join code updated successfully', newJoinCode })
+		return res.json(apiResponce(sender, 200, true, 'Join code updated successfully', { newJoinCode }))
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Internal server error' })
+		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -295,22 +318,24 @@ router.patch('/join-code', authenticate, async (req: Request, res: Response) => 
  * @throws {500} If there is an internal server error while leaving the family.
  */
 router.post('/leave', authenticate, async (req: Request, res: Response) => {
+	const sender = 'LEAVE_FAMILY'
+
 	const user = req.user
-	if (!user) return res.status(401).json({ message: 'Unauthorized' })
+	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
 
 	const familyId = req.body.familyId
-	if (!familyId) return res.status(400).json({ message: 'Family ID is required' })
+	if (!familyId) return res.json(apiResponce(sender, 401, false, 'Family ID is required'))
 
 	try {
 		const family = (await pool.query('SELECT * FROM family WHERE id = ?', [familyId]).then(res => res[0] as Family[]))[0]
-		if (!family) return res.status(404).json({ message: 'Family not found' })
+		if (!family) return res.json(apiResponce(sender, 402, false, 'Family not found'))
 
 		const existingMember = (
 			await pool
 				.query('SELECT * FROM family_member WHERE familyId = ? AND userId = ?', [family.id, user.id])
 				.then(res => res[0] as FamilyMember[])
 		)[0]
-		if (!existingMember) return res.status(400).json({ message: 'You are not a member of this family' })
+		if (!existingMember) return res.json(apiResponce(sender, 403, false, 'You are not a member of this family'))
 
 		if (family.ownerId === user.id) {
 			const otherAdults = await pool
@@ -326,7 +351,7 @@ router.post('/leave', authenticate, async (req: Request, res: Response) => {
 
 				// TODO: Broadcast to all other user sessions that the family has been deleted.
 
-				return res.status(200).json({ message: 'Family deleted as you were the only parent.' })
+				return res.json(apiResponce(sender, 200, true, 'Family deleted as you were the only parent.'))
 			}
 
 			const newOwnerId = (() => {
@@ -341,7 +366,14 @@ router.post('/leave', authenticate, async (req: Request, res: Response) => {
 			if (!newOwnerId) {
 				return res
 					.status(400)
-					.json({ message: 'The specified new owner ID is not valid. Please provide a valid parent ID from the family.' })
+					.json(
+						apiResponce(
+							sender,
+							404,
+							false,
+							'The specified new owner ID is not valid. Please provide a valid parent ID from the family.'
+						)
+					)
 			}
 
 			await pool.execute('UPDATE family SET ownerId = ? WHERE id = ?', [newOwnerId, family.id])
@@ -352,18 +384,18 @@ router.post('/leave', authenticate, async (req: Request, res: Response) => {
 			// TODO: Broadcast to all family members that the user has left the family.
 			// TODO: Broadcast to the user that they have left the family.
 
-			return res.status(200).json({ message: 'You have left the family and ownership has been transferred.', newOwnerId })
+			return res.json(apiResponce(sender, 201, true, 'You have left the family and ownership has been transferred.', { newOwnerId }))
 		} else {
 			await pool.execute('DELETE FROM family_member WHERE familyId = ? AND userId = ?', [family.id, user.id])
 
 			// TODO: Broadcast to all family members that the user has left the family.
 			// TODO: Broadcast to the user that they have left the family.
 
-			return res.status(200).json({ message: 'You have left the family.' })
+			return res.json(apiResponce(sender, 202, true, 'You have left the family.'))
 		}
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Internal server error' })
+		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -387,39 +419,39 @@ router.post('/leave', authenticate, async (req: Request, res: Response) => {
  */
 router.post('/remove-member', authenticate, async (req: Request, res: Response) => {
 	const user = req.user
-	if (!user) return res.status(401).json({ message: 'Unauthorized' })
+	if (!user) return res.json({ message: 'Unauthorized' })
 
 	const familyId = req.body.familyId
-	if (!familyId) return res.status(400).json({ message: 'Family ID is required' })
+	if (!familyId) return res.json({ message: 'Family ID is required' })
 
 	const targetId = req.body.targetId
-	if (!targetId) return res.status(400).json({ message: 'Target ID (the ID of the member to be removed) is required' })
+	if (!targetId) return res.json({ message: 'Target ID (the ID of the member to be removed) is required' })
 
 	if (targetId === user.id)
-		return res.status(400).json({ message: 'You cannot remove yourself. To leave the family, use the leave family option instead.' })
+		return res.json({ message: 'You cannot remove yourself. To leave the family, use the leave family option instead.' })
 
 	try {
 		const family = (await pool.query('SELECT * FROM family WHERE id = ?', [familyId]).then(res => res[0] as Family[]))[0]
-		if (!family) return res.status(404).json({ message: 'Family not found' })
+		if (!family) return res.json({ message: 'Family not found' })
 
-		if (family.ownerId !== user.id) return res.status(403).json({ message: 'Only the family owner can remove members' })
+		if (family.ownerId !== user.id) return res.json({ message: 'Only the family owner can remove members' })
 
 		const existingMember = (
 			await pool
 				.query('SELECT * FROM family_member WHERE familyId = ? AND userId = ?', [family.id, targetId])
 				.then(res => res[0] as FamilyMember[])
 		)[0]
-		if (!existingMember) return res.status(400).json({ message: 'The specified user is not a member of this family' })
+		if (!existingMember) return res.json({ message: 'The specified user is not a member of this family' })
 
 		await pool.execute('DELETE FROM family_member WHERE familyId = ? AND userId = ?', [family.id, targetId])
 
 		// TODO: Broadcast to all family members that the member has been removed from the family.
 		// TODO: Broadcast to the removed member that they have been removed from the family.
 
-		return res.status(200).json({ message: 'Member removed from the family.' })
+		return res.json({ message: 'Member removed from the family.' })
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Internal server error' })
+		return res.json({ message: 'Internal server error' })
 	}
 })
 
@@ -442,16 +474,16 @@ router.post('/remove-member', authenticate, async (req: Request, res: Response) 
  */
 router.delete('/byId/:familyId', authenticate, async (req: Request, res: Response) => {
 	const user = req.user
-	if (!user) return res.status(401).json({ message: 'Unauthorized' })
+	if (!user) return res.json({ message: 'Unauthorized' })
 
 	const familyId = req.params.familyId
-	if (!familyId) return res.status(400).json({ message: 'Family ID is required' })
+	if (!familyId) return res.json({ message: 'Family ID is required' })
 
 	try {
 		const family = (await pool.query('SELECT * FROM family WHERE id = ?', [familyId]).then(res => res[0] as Family[]))[0]
-		if (!family) return res.status(404).json({ message: 'Family not found' })
+		if (!family) return res.json({ message: 'Family not found' })
 
-		if (family.ownerId !== user.id) return res.status(403).json({ message: 'Only the family owner can delete the family' })
+		if (family.ownerId !== user.id) return res.json({ message: 'Only the family owner can delete the family' })
 
 		await pool.execute('DELETE FROM family WHERE id = ?', [family.id])
 		await pool.execute('DELETE FROM family_member WHERE familyId = ?', [family.id])
@@ -459,10 +491,10 @@ router.delete('/byId/:familyId', authenticate, async (req: Request, res: Respons
 		// TODO: Broadcast to all family members that the family has been deleted.
 		// TODO: Broadcast to all other user sessions that the family has been deleted.
 
-		return res.status(200).json({ message: 'Family deleted successfully' })
+		return res.json({ message: 'Family deleted successfully' })
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ message: 'Internal server error' })
+		return res.json({ message: 'Internal server error' })
 	}
 })
 

@@ -5,13 +5,14 @@ import axios, { AxiosError } from 'axios'
 import { useAuth } from '../../store/auth.ts'
 import type { ValidationError } from '../../utils/types'
 
-import './signup.styles.scss'
+import './password-reset.styles.scss'
 
 interface ServerErrorResponse {
 	message?: string
 	errors?: ValidationError[]
 }
-const SignupPage = () => {
+
+const PasswordResetPage = () => {
 	const [formErrors, setFormErrors] = useState<ValidationError[]>([])
 	const [generalError, setGeneralError] = useState<string | null>(null)
 
@@ -22,9 +23,9 @@ const SignupPage = () => {
 	const getFieldError = (field: string) => formErrors.find(err => err.field === field)?.message
 
 	return (
-		<div id='signup-page'>
+		<div id='password-reset-page'>
 			<form
-				id='signup-form'
+				id='password-reset-form'
 				noValidate
 				onSubmit={async e => {
 					e.preventDefault()
@@ -33,10 +34,9 @@ const SignupPage = () => {
 
 					const formData = new FormData(e.currentTarget)
 					const data = Object.fromEntries(formData.entries())
-					data.role = 'parent' // Default role for signup
 
 					try {
-						const response = await axios.post('/api/auth/register', data)
+						const response = await axios.patch('/api/auth/password', data)
 						const { user, accessToken } = response.data
 
 						setAuth(user, accessToken, false)
@@ -66,7 +66,7 @@ const SignupPage = () => {
 					}
 				}}
 			>
-				<h1>Sign Up</h1>
+				<h1>Password Reset</h1>
 
 				{generalError && (
 					<div id='general-error-message' style={{ color: 'red' }}>
@@ -110,49 +110,21 @@ const SignupPage = () => {
 					)}
 				</div>
 
-				<div id='first-name-group' className='form-group'>
-					<label htmlFor='first-name'>First Name</label>
-					<input
-						type='text'
-						id='first-name'
-						name='firstName'
-						required
-						ref={el => {
-							inputRefs.current['firstName'] = el
-						}}
-					/>
-					{getFieldError('firstName') && (
-						<span className='field-error' style={{ color: 'red' }}>
-							{getFieldError('firstName')}
-						</span>
-					)}
+				<div id='remember-me-group' className='form-group'>
+					<label htmlFor='remember-me'>
+						<input type='checkbox' id='remember-me' name='rememberMe' />
+						Remember Me
+					</label>
 				</div>
 
-				<div id='last-name-group' className='form-group'>
-					<label htmlFor='last-name'>Last Name</label>
-					<input
-						type='text'
-						id='last-name'
-						name='lastName'
-						required
-						ref={el => {
-							inputRefs.current['lastName'] = el
-						}}
-					/>
-					{getFieldError('lastName') && (
-						<span className='field-error' style={{ color: 'red' }}>
-							{getFieldError('lastName')}
-						</span>
-					)}
-				</div>
+				<button type='submit'>Reset Password</button>
 
-				<button type='submit'>Sign Up</button>
-				<div id='login-link'>
-					Already have an account? <a href='/login'>Login</a>
+				<div id='signup-link'>
+					Don't have an account? <a href='/signup'>Sign Up</a>
 				</div>
 			</form>
 		</div>
 	)
 }
 
-export default SignupPage
+export default PasswordResetPage
