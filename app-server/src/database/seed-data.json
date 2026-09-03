@@ -1,0 +1,58 @@
+[
+  {
+    "tableName": "family",
+    "data": []
+  },
+  {
+    "tableName": "user",
+    "data": []
+  },
+  {
+    "tableName": "subject",
+    "data": []
+  },
+  {
+    "tableName": "assignment",
+    "data": []
+  },
+  {
+    "tableName": "attachment",
+    "data": []
+  },
+  {
+    "tableName": "assignment_attachment",
+    "data": []
+  },
+  {
+    "tableName": "assignment_group",
+    "data": []
+  },
+  {
+    "tableName": "assignment_group_member",
+    "data": []
+  },
+  {
+    "tableName": "comment",
+    "data": []
+  },
+  {
+    "tableName": "comment_attachment",
+    "data": []
+  },
+  {
+    "tableName": "session",
+    "data": []
+  },
+  {
+    "tableName": "task",
+    "data": []
+  },
+  {
+    "tableName": "task_attachment",
+    "data": []
+  },
+  {
+    "tableName": "task_status",
+    "data": []
+  }
+]

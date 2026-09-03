@@ -33,8 +33,8 @@ async function rebuildDatabase() {
 		// Split triggers by the custom $$ delimiter and clean them up
 		triggerStatements = triggerBlock
 			.split('$$')
-			.map(cmd => cmd.trim())
-			.filter(cmd => cmd.length > 0)
+			.map((cmd) => cmd.trim())
+			.filter((cmd) => cmd.length > 0)
 
 		// Remove the entire DELIMITER block from the main script
 		sqlScript = sqlScript.replace(delimiterRegex, '')
@@ -43,8 +43,8 @@ async function rebuildDatabase() {
 	// Process standard SQL statements (Split by semicolon)
 	standardStatements = sqlScript
 		.split(';')
-		.map(cmd => cmd.trim())
-		.filter(cmd => cmd.length > 0)
+		.map((cmd) => cmd.trim())
+		.filter((cmd) => cmd.length > 0)
 
 	// Combine into a single ordered sequence
 	const allStatements = [...standardStatements, ...triggerStatements]
