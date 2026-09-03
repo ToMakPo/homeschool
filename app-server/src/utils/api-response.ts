@@ -3,7 +3,7 @@
  * This interface defines the structure of the response object that will be
  * returned by the API endpoints.
  */
-export interface ApiResponce {
+export interface ApiResponse {
 	/** The source of the response (e.g., the name of the API endpoint). */
 	sender: string
 	/** The unique status code within the API for this response.
@@ -27,4 +27,17 @@ export interface ApiResponce {
 	 * object, array, or primitive value.
 	 */
 	data?: any
+}
+
+/** A utility function to create an ApiResponse object.
+ *
+ * @param sender - The source of the response (e.g., the name of the API endpoint).
+ * @param code - The unique status code within the API for this response.
+ * @param passed - Indicates whether the operation was successful or not.
+ * @param message - A descriptive message providing more details about the response.
+ * @param data - Data that can be included in the response.
+ * @returns An ApiResponse object with the provided parameters.
+ */
+export const apiResponse = (sender: string, code: number, passed: boolean, message: string, data?: any): ApiResponse => {
+	return { sender, code, passed, message, data }
 }

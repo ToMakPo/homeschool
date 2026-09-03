@@ -4,7 +4,7 @@ import pool from '../database/config'
 import { authenticate } from '../middleware/auth'
 import { upload } from '../middleware/storage'
 import { validateBoolean, validateEnum, validateName, validateString, validateUsername, ValidationResult } from '../utils/validation'
-import { apiResponce } from '../utils/api-responces'
+import { apiResponse } from '../utils/api-response'
 import { User } from '../utils/types'
 
 const router = Router()
@@ -25,16 +25,16 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
 	const sender = 'GET_USER_SELF'
 
 	const user = req.user
-	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
+	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
 	try {
 		const foundUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then((res) => res[0] as User[]))[0]
-		if (!foundUser) return res.json(apiResponce(sender, 401, false, 'User not found.'))
+		if (!foundUser) return res.json(apiResponse(sender, 401, false, 'User not found.'))
 
-		return res.json(apiResponce(sender, 200, true, 'User fetched successfully.', foundUser))
+		return res.json(apiResponse(sender, 200, true, 'User fetched successfully.', foundUser))
 	} catch (err) {
 		console.error(err)
-		return res.json(apiResponce(sender, 500, false, 'Internal server error.'))
+		return res.json(apiResponse(sender, 500, false, 'Internal server error.'))
 	}
 })
 
@@ -54,7 +54,7 @@ router.patch('/', authenticate, async (req: Request, res: Response) => {
 	const sender = 'PATCH_USER_SELF'
 
 	const user = req.user
-	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
+	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
 	const validations: ValidationResult<any>[] = []
 	const updates: Partial<User> = req.body.updates
@@ -103,9 +103,9 @@ router.patch('/', authenticate, async (req: Request, res: Response) => {
 		validations.push(passwordResetValidation)
 	}
 
-	if (validations.some((v) => !v.passed)) return res.json(apiResponce(sender, 401, false, 'Validation failed', { validations }))
+	if (validations.some((v) => !v.passed)) return res.json(apiResponse(sender, 401, false, 'Validation failed', { validations }))
 
-	if (Object.keys(newValues).length === 0) return res.json(apiResponce(sender, 402, false, 'No valid fields to update'))
+	if (Object.keys(newValues).length === 0) return res.json(apiResponse(sender, 402, false, 'No valid fields to update'))
 
 	const setClause = Object.keys(newValues)
 		.map((key) => `${key} = ?`)
@@ -118,10 +118,10 @@ router.patch('/', authenticate, async (req: Request, res: Response) => {
 
 		// TODO: Broadcast to all family members that the user has updated their information.
 
-		return res.json(apiResponce(sender, 200, true, 'User updated successfully.', updatedUser))
+		return res.json(apiResponse(sender, 200, true, 'User updated successfully.', updatedUser))
 	} catch (err) {
 		console.error(err)
-		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
+		return res.json(apiResponse(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -142,11 +142,11 @@ router.patch('/avatar', authenticate, upload.single('avatar'), async (req: Reque
 	const sender = 'PATCH_USER_AVATAR'
 
 	const user = req.user
-	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
+	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
 	const file = req.file
 	if (!file) {
-		return res.json(apiResponce(sender, 401, false, 'No file uploaded'))
+		return res.json(apiResponse(sender, 401, false, 'No file uploaded'))
 	}
 
 	try {
@@ -155,10 +155,10 @@ router.patch('/avatar', authenticate, upload.single('avatar'), async (req: Reque
 
 		//TODO: brodcast to all family members that the user has updated their avatar.
 
-		return res.json(apiResponce(sender, 200, true, 'Avatar updated successfully', { avatarUrl }))
+		return res.json(apiResponse(sender, 200, true, 'Avatar updated successfully', { avatarUrl }))
 	} catch (err) {
 		console.error(err)
-		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
+		return res.json(apiResponse(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -178,7 +178,7 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 	const sender = 'DELETE_USER_SELF'
 
 	const user = req.user
-	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
+	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
 	const force = (await validateBoolean(req.body.force, 'Force', true)).value ?? false
 	const promoteId = (await validateString(req.body.promoteId, 'Promote ID', true)).value || null
@@ -192,10 +192,10 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 				// TODO: Broadcast to all other family members that the user has left the family.
 				// TODO: Broadcast to all other user sessions that the user has been deleted and logged out.
 
-				return res.json(apiResponce(sender, 250, true, 'User account deleted successfully.'))
+				return res.json(apiResponse(sender, 250, true, 'User account deleted successfully.'))
 			} else {
 				return res.json(
-					apiResponce(sender, 401, false, 'You are not authorized to delete your account. Please contact a parent to delete your account.')
+					apiResponse(sender, 401, false, 'You are not authorized to delete your account. Please contact a parent to delete your account.')
 				)
 			}
 		}
@@ -212,7 +212,7 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 
 			// TODO: Broadcast to all other user sessions that the user has been deleted and logged out.
 
-			return res.json(apiResponce(sender, 200, true, 'User account and family deleted successfully.'))
+			return res.json(apiResponse(sender, 200, true, 'User account and family deleted successfully.'))
 		}
 
 		// Get all other parents.
@@ -227,10 +227,10 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 
 				// TODO: Brodcast to all family member user sessions that the user had been deleted and to log out.
 
-				return res.json(apiResponce(sender, 251, true, 'The user has been deleted along with the family and other members.'))
+				return res.json(apiResponse(sender, 251, true, 'The user has been deleted along with the family and other members.'))
 			} else {
 				return res.json(
-					apiResponce(sender, 402, false, 'The user was not able to be deleted due to being the only parent while students exist.')
+					apiResponse(sender, 402, false, 'The user was not able to be deleted due to being the only parent while students exist.')
 				)
 			}
 		}
@@ -240,9 +240,9 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 			if (promoteId) {
 				const promoteUser = otherMembers.find((m) => m.id === promoteId)
 
-				if (!promoteUser) return res.json(apiResponce(sender, 403, false, 'The promote user is not within the family.'))
+				if (!promoteUser) return res.json(apiResponse(sender, 403, false, 'The promote user is not within the family.'))
 
-				if (!promoteUser.isParent) return res.json(apiResponce(sender, 404, false, 'The promote user is not a parent.'))
+				if (!promoteUser.isParent) return res.json(apiResponse(sender, 404, false, 'The promote user is not a parent.'))
 
 				await pool.execute('UPDATE user SET role = ? WHERE id = ?', ['owner', promoteId])
 
@@ -253,7 +253,7 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 				// TODO: Brodcast to family that user has left.
 				// TODO: Brodcast to user sessions that user is deleted and to logout.
 
-				return res.json(apiResponce(sender, 201, true, 'Selected parent was promoted and the user has been delted.'))
+				return res.json(apiResponse(sender, 201, true, 'Selected parent was promoted and the user has been delted.'))
 			} else if (force) {
 				const promoteUser = (() => {
 					const admin = otherParents
@@ -273,10 +273,10 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 				// TODO: Brodcast to family that user has left.
 				// TODO: Brodcast to user sessions that user is deleted and to logout.
 
-				return res.json(apiResponce(sender, 252, true, 'Other parent was promoted and the user has been delted.'))
+				return res.json(apiResponse(sender, 252, true, 'Other parent was promoted and the user has been delted.'))
 			} else {
 				return res.json(
-					apiResponce(sender, 405, false, 'The user was not able to be deleted due to being the only admin while other members exist.')
+					apiResponse(sender, 405, false, 'The user was not able to be deleted due to being the only admin while other members exist.')
 				)
 			}
 		}
@@ -286,10 +286,10 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 		// TODO: Brodcast to family that user has left.
 		// TODO: Brodcast to user sessions that user is deleted and to logout.
 
-		return res.json(apiResponce(sender, 202, true, 'Selected parent was promoted and the user has been delted.'))
+		return res.json(apiResponse(sender, 202, true, 'Selected parent was promoted and the user has been delted.'))
 	} catch (err) {
 		console.error(err)
-		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
+		return res.json(apiResponse(sender, 500, false, 'Internal server error'))
 	}
 })
 

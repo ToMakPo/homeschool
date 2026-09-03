@@ -3,31 +3,26 @@ import { useNavigate } from 'react-router-dom'
 import axios, { AxiosError } from 'axios'
 
 import { useAuth } from '../../store/auth.ts'
-import type { ValidationError } from '../../utils/types'
+import { ApiResponse } from '../../utils/api-response.ts'
 
 import './login.styles.scss'
 
-interface ServerErrorResponse {
-	message?: string
-	errors?: ValidationError[]
-}
-
 const LoginPage = () => {
-	const [formErrors, setFormErrors] = useState<ValidationError[]>([])
+	const [formErrors, setFormErrors] = useState<ApiResponse[]>([])
 	const [generalError, setGeneralError] = useState<string | null>(null)
 
-	const setAuth = useAuth(state => state.setAuth)
+	const setAuth = useAuth((state) => state.setAuth)
 	const navigate = useNavigate()
 	const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
-	const getFieldError = (field: string) => formErrors.find(err => err.field === field)?.message
+	const getFieldError = (field: string) => formErrors.find((err) => err.field === field)?.message
 
 	return (
 		<div id='login-page'>
 			<form
 				id='login-form'
 				noValidate
-				onSubmit={async e => {
+				onSubmit={async (e) => {
 					e.preventDefault()
 					setFormErrors([])
 					setGeneralError(null)
@@ -47,14 +42,14 @@ const LoginPage = () => {
 
 						if (!inputRefs.current) return
 
-						const axiosError = error as AxiosError<ServerErrorResponse>
+						const axiosError = error as AxiosError<{ message?: string; errors?: ApiResponse[] }>
 						const responseData = axiosError.response?.data
 
 						if (responseData?.errors) {
 							const serverErrors = responseData.errors
 							setFormErrors(serverErrors)
 
-							const firstErrorField = serverErrors.find(err => inputRefs.current[err.field])
+							const firstErrorField = serverErrors.find((err) => inputRefs.current[err.field])
 							if (firstErrorField) {
 								inputRefs.current[firstErrorField.field]?.focus()
 							}
@@ -81,7 +76,7 @@ const LoginPage = () => {
 						id='username'
 						name='username'
 						required
-						ref={el => {
+						ref={(el) => {
 							inputRefs.current['username'] = el
 						}}
 					/>
@@ -99,7 +94,7 @@ const LoginPage = () => {
 						id='password'
 						name='password'
 						required
-						ref={el => {
+						ref={(el) => {
 							inputRefs.current['password'] = el
 						}}
 					/>

@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 import pool from '../database/config'
 import { authenticate } from '../middleware/auth'
-import { apiResponce } from '../utils/api-responces'
+import { apiResponse } from '../utils/api-response'
 import { Family, User } from '../utils/types'
 import { validateEnum, validateName, validatePassword, validateString, validateUsername, ValidationResult } from '../utils/validation'
 
@@ -27,7 +27,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
 	const sender = 'GET_FAMILY_BY_FAMILY_ID'
 
 	const user = req.user
-	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
+	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
 	try {
 		// Fetch the family data for the given familyId.
@@ -36,10 +36,10 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
 		// Fetch all family members for the given familyId.
 		const members = await pool.query('SELECT * FROM view_user WHERE familyId = ?', [user.familyId]).then((res) => res[0] as User[])
 
-		return res.json(apiResponce(sender, 200, true, 'Family fetched successfully.', { family, members }))
+		return res.json(apiResponse(sender, 200, true, 'Family fetched successfully.', { family, members }))
 	} catch (err) {
 		console.error(err)
-		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
+		return res.json(apiResponse(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -60,23 +60,23 @@ router.patch('/name', authenticate, async (req: Request, res: Response) => {
 	const sender = 'PATCH_FAMILY_NAME'
 
 	const user = req.user
-	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
+	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
-	if (!user.isAdminX) return res.json(apiResponce(sender, 401, false, 'You do not have permision to update the family.'))
+	if (!user.isAdminX) return res.json(apiResponse(sender, 401, false, 'You do not have permision to update the family.'))
 
 	try {
 		const nameValidation = await validateString(req.body.params.name, 'Family Name', true, 3, 50)
-		if (!nameValidation.passed) return res.json(apiResponce(sender, 402, false, 'Validation failed', { validations: [nameValidation] }))
+		if (!nameValidation.passed) return res.json(apiResponse(sender, 402, false, 'Validation failed', { validations: [nameValidation] }))
 		const newName = nameValidation.value!
 
 		await pool.execute('UPDATE family SET name = ? WHERE id = ?', [newName, user.familyId])
 
 		// TODO: Broadcast to all family members that the family name has been updated.
 
-		return res.json(apiResponce(sender, 200, true, 'Family name updated successfully', { newName }))
+		return res.json(apiResponse(sender, 200, true, 'Family name updated successfully', { newName }))
 	} catch (err) {
 		console.error(err)
-		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
+		return res.json(apiResponse(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -96,9 +96,9 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 	const sender = 'DELETE_FAMILY'
 
 	const user = req.user
-	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
+	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
-	if (!user.isOwner) return res.json(apiResponce(sender, 401, false, 'Only the owner of the family group can delete the family group.'))
+	if (!user.isOwner) return res.json(apiResponse(sender, 401, false, 'Only the owner of the family group can delete the family group.'))
 
 	try {
 		await pool.execute('DELETE FROM family WHERE id = ?', [user.familyId])
@@ -122,9 +122,9 @@ router.put('/create', authenticate, async (req: Request, res: Response) => {
 	const sender = 'CREATE_FAMILY_MEMBER'
 
 	const user = req.user
-	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
+	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
-	if (!user.isAdminX) return res.json(apiResponce(sender, 401, false, 'Only family admin can create family members.'))
+	if (!user.isAdminX) return res.json(apiResponse(sender, 401, false, 'Only family admin can create family members.'))
 
 	try {
 		/// VALIDATE INPUTS ///
@@ -151,7 +151,7 @@ router.put('/create', authenticate, async (req: Request, res: Response) => {
 		const role = roleValidation.value!
 		validations.push(roleValidation)
 
-		if (validations.some((v) => !v.passed)) return res.json(apiResponce(sender, 401, false, 'Validation failed', { validations }))
+		if (validations.some((v) => !v.passed)) return res.json(apiResponse(sender, 401, false, 'Validation failed', { validations }))
 
 		/// CREATE NEW USER
 
@@ -166,15 +166,15 @@ router.put('/create', authenticate, async (req: Request, res: Response) => {
 		)
 
 		const newUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [userId]).then((result) => result[0] as User[]))[0]
-		if (!newUser) return res.json(apiResponce(sender, 501, false, 'Failed to retrieve newly created user.'))
+		if (!newUser) return res.json(apiResponse(sender, 501, false, 'Failed to retrieve newly created user.'))
 
 		// TODO: Broadcast to all family members that a new member was added to the family.
 		// TODO: Once email verification is implemented, send a verification email to the new user.
 
-		return res.json(apiResponce(sender, 200, true, 'A new family member was created.'))
+		return res.json(apiResponse(sender, 200, true, 'A new family member was created.'))
 	} catch (err) {
 		console.error(err)
-		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
+		return res.json(apiResponse(sender, 500, false, 'Internal server error'))
 	}
 })
 
@@ -194,31 +194,31 @@ router.delete('/member/:id', authenticate, async (req: Request, res: Response) =
 	const sender = 'DELETE_FAMILY_MEMBER'
 
 	const user = req.user
-	if (!user) return res.json(apiResponce(sender, 400, false, 'You are not authenticated.'))
+	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
 	const targetId = req.params.id
-	if (!targetId) return res.json(apiResponce(sender, 401, false, 'No member ID was provided.'))
+	if (!targetId) return res.json(apiResponse(sender, 401, false, 'No member ID was provided.'))
 
 	try {
 		const member = (
 			await pool.query('SELECT * FROM view_user WHERE id = ? AND familyId = ?', [targetId, user.familyId]).then((res) => res[0] as User[])
 		)[0]
 
-		if (!member) return res.json(apiResponce(sender, 402, false, 'Target not found.'))
+		if (!member) return res.json(apiResponse(sender, 402, false, 'Target not found.'))
 
-		if (!user.isParent) return res.json(apiResponce(sender, 403, false, 'You are not permited to remove other users.'))
-		if (!user.isAdminX && member.isParent) return res.json(apiResponce(sender, 404, false, 'You are not permited to remove other parents.'))
-		if (!user.isOwner && member.isAdminX) return res.json(apiResponce(sender, 405, false, 'You are not permited to remove other admin.'))
+		if (!user.isParent) return res.json(apiResponse(sender, 403, false, 'You are not permited to remove other users.'))
+		if (!user.isAdminX && member.isParent) return res.json(apiResponse(sender, 404, false, 'You are not permited to remove other parents.'))
+		if (!user.isOwner && member.isAdminX) return res.json(apiResponse(sender, 405, false, 'You are not permited to remove other admin.'))
 
 		await pool.execute('DELETE FROM user WHERE id = ?', [targetId])
 
 		// TODO: Broadcast to all family members that the member has been deleted.
 		// TODO: Broadcast to all other member sessions that the member has been deleted and logged out.
 
-		return res.json(apiResponce(sender, 200, true, 'Target account deleted successfully.'))
+		return res.json(apiResponse(sender, 200, true, 'Target account deleted successfully.'))
 	} catch (err) {
 		console.error(err)
-		return res.json(apiResponce(sender, 500, false, 'Internal server error'))
+		return res.json(apiResponse(sender, 500, false, 'Internal server error'))
 	}
 })
 

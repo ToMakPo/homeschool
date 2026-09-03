@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 import pool from '../database/config'
 import { User } from '../utils/types'
 import { authenticate, signToken } from '../middleware/auth'
-import { apiResponce } from '../utils/api-responces'
+import { apiResponse } from '../utils/api-response'
 import { validateUsername, validatePassword, validateName, ValidationResult, validateBoolean, validateString } from '../utils/validation'
 
 const router = Router()
@@ -68,7 +68,7 @@ router.post('/register', async (req: Request, res: Response) => {
 		validations.push(isAdminValidation)
 		let isAdmin = isAdminValidation.value as boolean | undefined
 
-		if (validations.some((v) => !v.passed)) return res.json(apiResponce(sender, 400, false, 'Validation failed', { validations }))
+		if (validations.some((v) => !v.passed)) return res.json(apiResponse(sender, 400, false, 'Validation failed', { validations }))
 
 		/// CREATE NEW USER
 
@@ -97,7 +97,7 @@ router.post('/register', async (req: Request, res: Response) => {
 		])
 
 		const newUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [userId]).then((result) => result[0] as User[]))[0]
-		if (!newUser) return res.json(apiResponce(sender, 501, false, 'Failed to retrieve newly created user.'))
+		if (!newUser) return res.json(apiResponse(sender, 501, false, 'Failed to retrieve newly created user.'))
 
 		if (!familyIsNew) {
 			// TODO: Broadcast to all family members that a new member has joined the family.
@@ -112,10 +112,10 @@ router.post('/register', async (req: Request, res: Response) => {
 		// TODO: Once email verification is implemented, send a verification email to the new user.
 
 		const message = familyIsNew ? 'New user and new family created.' : 'New user created and added to family.'
-		return res.json(apiResponce(sender, 200, true, message, { user: newUser, accessToken }))
+		return res.json(apiResponse(sender, 200, true, message, { user: newUser, accessToken }))
 	} catch (error) {
 		console.error(error)
-		return res.json(apiResponce(sender, 500, false, 'An error occurred while creating the user.', error))
+		return res.json(apiResponse(sender, 500, false, 'An error occurred while creating the user.', error))
 	}
 })
 
@@ -145,10 +145,10 @@ router.post('/login', async (req: Request, res: Response) => {
 	validations.push({ passed: !!username, message: username ? 'Username provided' : 'Username is required', field: 'username' })
 	validations.push({ passed: !!password, message: password ? 'Password provided' : 'Password is required', field: 'password' })
 
-	if (validations.some((v) => !v.passed)) return res.json(apiResponce(sender, 400, false, 'Validation failed', { validations }))
+	if (validations.some((v) => !v.passed)) return res.json(apiResponse(sender, 400, false, 'Validation failed', { validations }))
 
 	try {
-		const loginFailedResponse = apiResponce(sender, 401, false, 'Invalid username or password')
+		const loginFailedResponse = apiResponse(sender, 401, false, 'Invalid username or password')
 
 		const record = (
 			await pool
@@ -161,7 +161,7 @@ router.post('/login', async (req: Request, res: Response) => {
 		if (!passwordMatch) return res.json(loginFailedResponse)
 
 		const user = (await pool.query('SELECT * FROM view_user WHERE id = ?', [record.id]).then((result) => result[0] as User[]))[0]
-		if (!user) return res.json(apiResponce(sender, 501, false, 'Unable to retrieve user after successful login.'))
+		if (!user) return res.json(apiResponse(sender, 501, false, 'Unable to retrieve user after successful login.'))
 
 		/// USER PASSED LOGIN VALIDATION | LOG THE USER IN
 
@@ -171,10 +171,10 @@ router.post('/login', async (req: Request, res: Response) => {
 
 		// TODO: Broadcast to all family members that the user has logged in.
 
-		return res.json(apiResponce(sender, 200, true, 'User was logged in.', { user, accessToken }))
+		return res.json(apiResponse(sender, 200, true, 'User was logged in.', { user, accessToken }))
 	} catch (error) {
 		console.error(error)
-		return res.json(apiResponce(sender, 500, false, 'An error occurred while logging in.', error))
+		return res.json(apiResponse(sender, 500, false, 'An error occurred while logging in.', error))
 	}
 })
 
@@ -197,11 +197,11 @@ router.post('/logout', authenticate, async (req: Request, res: Response) => {
 	const sender = 'POST_AUTH_LOGOUT'
 
 	const user = req.user
-	if (!user) return res.json(apiResponce(sender, 400, false, 'User not authenticated'))
+	if (!user) return res.json(apiResponse(sender, 400, false, 'User not authenticated'))
 
 	const authHeader = req.headers.authorization
 	if (!authHeader?.startsWith('Bearer ')) {
-		return res.json(apiResponce(sender, 401, false, 'No token provided'))
+		return res.json(apiResponse(sender, 401, false, 'No token provided'))
 	}
 
 	try {
@@ -211,10 +211,10 @@ router.post('/logout', authenticate, async (req: Request, res: Response) => {
 		// TODO: Check if the user is still logged in on any other sessions.
 		// If not, broadcast to all family members that the user has logged out.
 
-		return res.json(apiResponce(sender, 200, true, 'Logged out successfully'))
+		return res.json(apiResponse(sender, 200, true, 'Logged out successfully'))
 	} catch (error) {
 		console.error(error)
-		return res.json(apiResponce(sender, 500, false, 'An error occurred while logging out.', error))
+		return res.json(apiResponse(sender, 500, false, 'An error occurred while logging out.', error))
 	}
 })
 
