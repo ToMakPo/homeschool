@@ -10,6 +10,21 @@ import { User } from '../utils/types'
 const router = Router()
 router.use(authenticate)
 
+export function formatUser(user: User): User {
+	user.isStudent = Boolean(user.isStudent)
+	user.isParent = Boolean(user.isParent)
+	user.isAdmin = Boolean(user.isAdmin)
+	user.isOwner = Boolean(user.isOwner)
+	user.passwordReset = Boolean(user.passwordReset)
+	user.createdAt = new Date(user.createdAt)
+
+	return user
+}
+
+export function cleanUserRecords(result: any[]) {
+	return (result[0] as User[]).map((u) => formatUser(u))
+}
+
 //////////////////////////////////////////
 /// GET THE CURRENT USER'S INFORMATION ///
 //////////////////////////////////////////
@@ -28,7 +43,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
 	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
 	try {
-		const foundUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then((res) => res[0] as User[]))[0]
+		const foundUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then(cleanUserRecords))[0]
 		if (!foundUser) return res.json(apiResponse(sender, 401, false, 'User not found.'))
 
 		return res.json(apiResponse(sender, 200, true, 'User fetched successfully.', foundUser))
@@ -85,15 +100,15 @@ router.patch('/', authenticate, async (req: Request, res: Response) => {
 		validations.push(displayNameValidation)
 	}
 
-	if (updates.roleX !== undefined) {
-		const personaValidation = await validateEnum<User['roleX']>(updates.roleX, ['admin', 'parent', 'student'], 'Role')
-		newValues.roleX = personaValidation.value!
+	if (updates.role !== undefined) {
+		const personaValidation = await validateEnum<User['role']>(updates.role, ['admin', 'parent', 'student'], 'Role')
+		newValues.role = personaValidation.value!
 		validations.push(personaValidation)
 	}
 
-	if (updates.isAdminX !== undefined) {
-		const isAdminValidation = await validateBoolean(updates.isAdminX, 'Is Admin')
-		newValues.isAdminX = isAdminValidation.value!
+	if (updates.isAdmin !== undefined) {
+		const isAdminValidation = await validateBoolean(updates.isAdmin, 'Is Admin')
+		newValues.isAdmin = isAdminValidation.value!
 		validations.push(isAdminValidation)
 	}
 
@@ -114,7 +129,7 @@ router.patch('/', authenticate, async (req: Request, res: Response) => {
 
 	try {
 		await pool.execute(`UPDATE user SET ${setClause} WHERE id = ?`, [...values, user.id])
-		const updatedUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then((res) => res[0] as User[]))[0]
+		const updatedUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then(cleanUserRecords))[0]
 
 		// TODO: Broadcast to all family members that the user has updated their information.
 
@@ -203,7 +218,7 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 		// Get all of the other family members other than the current user.
 		const otherMembers = await pool
 			.query('SELECT * FROM view_user WHERE familyId = ? AND id != ?', [user.familyId, user.id])
-			.then((res) => res[0] as User[])
+			.then(cleanUserRecords)
 
 		// If the user is the only member of the family, then delete the user and the family.
 		if (otherMembers.length === 0) {
@@ -257,7 +272,7 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 			} else if (force) {
 				const promoteUser = (() => {
 					const admin = otherParents
-						.filter((m) => m.isAdminX)
+						.filter((m) => m.isAdmin)
 						.reduce((oldest, current) => (current.createdAt < oldest.createdAt ? current : oldest), null as unknown as User)
 					if (admin) return admin
 

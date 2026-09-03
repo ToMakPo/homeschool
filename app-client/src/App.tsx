@@ -1,31 +1,30 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
 import { useAuth } from './store/auth.ts'
-import type { User } from './utils/types.ts'
 
 import LoginPage from './pages/login/login.page.tsx'
 import SignupPage from './pages/signup/signup.page.tsx'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-	const user = useAuth(state => state.user)
+	const user = useAuth((state) => state.user)
 	if (!user) return <Navigate to='/login' replace />
 	return <>{children}</>
 }
 
-function RequirePersona({ role, children }: { role: User['role']; children: React.ReactNode }) {
-	const user = useAuth(state => state.user)
-	if (!user || user.role !== role) return <Navigate to='/login' replace />
+function RequirePersona({ isParent, children }: { isParent: boolean; children: React.ReactNode }) {
+	const user = useAuth((state) => state.user)
+	if (!user || user.isParent !== isParent) return <Navigate to='/login' replace />
 	return <>{children}</>
 }
 
 function RootRedirect() {
-	const user = useAuth(state => state.user)
+	const user = useAuth((state) => state.user)
 	if (!user) return <Navigate to='/login' replace />
 	return <Navigate to={`/${user.role}`} replace />
 }
 
 export default function App() {
-	const user = useAuth(state => state.user)
+	const user = useAuth((state) => state.user)
 
 	return (
 		<BrowserRouter>
@@ -38,7 +37,7 @@ export default function App() {
 				<Route
 					path='/parent'
 					element={
-						<RequirePersona role='parent'>
+						<RequirePersona isParent={true}>
 							<h1>Parent Dashboard</h1>
 							<pre>{JSON.stringify(user, null, 2)}</pre>
 						</RequirePersona>
@@ -49,7 +48,7 @@ export default function App() {
 				<Route
 					path='/student'
 					element={
-						<RequirePersona role='student'>
+						<RequirePersona isParent={false}>
 							<div>
 								<h1>Student Dashboard</h1>
 								<pre>{JSON.stringify(user, null, 2)}</pre>

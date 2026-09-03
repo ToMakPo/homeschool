@@ -7,6 +7,7 @@ import path from 'path'
 import authRoutes from './routes/auth'
 import userRoutes from './routes/user'
 import familyRoutes from './routes/family'
+import validateRoutes from './routes/validate'
 
 // import { initSockets } from './sockets'
 
@@ -22,6 +23,7 @@ app.use(express.urlencoded({ extended: true }))
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/family', familyRoutes)
+app.use('/api/validate', validateRoutes)
 
 app.get('/health', (_, res) => res.status(200).json({ status: 'ok' }))
 

@@ -28,3 +28,14 @@ export interface ApiResponse {
 	 */
 	data?: any
 }
+
+export interface ValidationResult<T = string> {
+	/** Indicates whether the validation was successful. */
+	passed: boolean
+	/** Provides a message describing the result of the validation. */
+	message: string
+	/** The cleaned value, if applicable. */
+	value?: T
+	/** The field name associated with the validation error. */
+	field?: string
+}

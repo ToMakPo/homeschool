@@ -1,78 +1,74 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios, { AxiosError } from 'axios'
+import axios from 'axios'
 
 import { useAuth } from '../../store/auth.ts'
-import type { ValidationError } from '../../utils/types'
+import { type ApiResponse, type ValidationResult } from '../../utils/api-response.ts'
+import type { User } from '../../utils/types.ts'
 
 import './signup.styles.scss'
 
-interface ServerErrorResponse {
-	message?: string
-	errors?: ValidationError[]
-}
 const SignupPage = () => {
-	const [formErrors, setFormErrors] = useState<ValidationError[]>([])
-	const [generalError, setGeneralError] = useState<string | null>(null)
+	const [formResponse, setFormResponse] = useState<ApiResponse | null>(null)
 
-	const setAuth = useAuth(state => state.setAuth)
+	const setAuth = useAuth((state) => state.setAuth)
 	const navigate = useNavigate()
 	const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
-	const getFieldError = (field: string) => formErrors.find(err => err.field === field)?.message
+	const getInputMessage = (field: string) => {
+		if (!formResponse || !formResponse.data?.validations) return null
+
+		const validations = formResponse?.data?.validations as ValidationResult[]
+		if (!validations) return null
+
+		const validation = validations.find((v) => v.field === field)
+		return !validation ? null : (
+			<span className={['input-message', validation.passed ? 'passed' : 'failed'].join(' ')}>{validation.message}</span>
+		)
+	}
+
+	const getGeneralMessage = () => {
+		if (!formResponse || formResponse.data?.validations) return null
+
+		return (
+			<div id='general-error-message' className={['general-message', formResponse.passed ? 'passed' : 'failed'].join(' ')}>
+				{formResponse.message}
+			</div>
+		)
+	}
 
 	return (
 		<div id='signup-page'>
 			<form
 				id='signup-form'
 				noValidate
-				onSubmit={async e => {
+				onSubmit={async (e) => {
 					e.preventDefault()
-					setFormErrors([])
-					setGeneralError(null)
+					setFormResponse(null)
 
 					const formData = new FormData(e.currentTarget)
 					const data = Object.fromEntries(formData.entries())
-					data.role = 'parent' // Default role for signup
+					data.role = 'owner' // Default role for signup
 
 					try {
-						const response = await axios.post('/api/auth/register', data)
-						const { user, accessToken } = response.data
+						const response = await axios.post('/api/auth/register', data).then((res) => res.data as ApiResponse)
 
-						setAuth(user, accessToken, false)
+						setFormResponse(response)
 
-						navigate(`/${user.role}`)
+						if (!response.passed) return
+
+						const user = response.data.user as User
+						const accessToken = response.data.accessToken as string
+
+						setAuth(user, accessToken)
+
+						navigate(`/${user.isParent ? 'parent' : 'student'}`)
 					} catch (error) {
 						console.error('Error:', error)
-
-						if (!inputRefs.current) return
-
-						const axiosError = error as AxiosError<ServerErrorResponse>
-						const responseData = axiosError.response?.data
-
-						if (responseData?.errors) {
-							const serverErrors = responseData.errors
-							setFormErrors(serverErrors)
-
-							const firstErrorField = serverErrors.find(err => inputRefs.current[err.field])
-							if (firstErrorField) {
-								inputRefs.current[firstErrorField.field]?.focus()
-							}
-						} else if (responseData?.message) {
-							setGeneralError(responseData.message)
-						} else {
-							setGeneralError('An unexpected server error occurred.')
-						}
 					}
 				}}
 			>
 				<h1>Sign Up</h1>
-
-				{generalError && (
-					<div id='general-error-message' style={{ color: 'red' }}>
-						{generalError}
-					</div>
-				)}
 
 				<div id='username-group' className='form-group'>
 					<label htmlFor='username'>Username</label>
@@ -80,16 +76,13 @@ const SignupPage = () => {
 						type='text'
 						id='username'
 						name='username'
+						autoComplete='username'
 						required
-						ref={el => {
+						ref={(el) => {
 							inputRefs.current['username'] = el
 						}}
 					/>
-					{getFieldError('username') && (
-						<span className='field-error' style={{ color: 'red' }}>
-							{getFieldError('username')}
-						</span>
-					)}
+					{getInputMessage('username')}
 				</div>
 
 				<div id='password-group' className='form-group'>
@@ -98,16 +91,28 @@ const SignupPage = () => {
 						type='password'
 						id='password'
 						name='password'
+						autoComplete='new-password'
 						required
-						ref={el => {
+						ref={(el) => {
 							inputRefs.current['password'] = el
 						}}
 					/>
-					{getFieldError('password') && (
-						<span className='field-error' style={{ color: 'red' }}>
-							{getFieldError('password')}
-						</span>
-					)}
+					{getInputMessage('password')}
+				</div>
+
+				<div id='confirmation-group' className='form-group'>
+					<label htmlFor='confirmation'>Confirm Password</label>
+					<input
+						type='password'
+						id='confirmation'
+						name='confirmation'
+						autoComplete='new-password'
+						required
+						ref={(el) => {
+							inputRefs.current['confirmation'] = el
+						}}
+					/>
+					{getInputMessage('confirmation')}
 				</div>
 
 				<div id='first-name-group' className='form-group'>
@@ -116,16 +121,13 @@ const SignupPage = () => {
 						type='text'
 						id='first-name'
 						name='firstName'
+						autoComplete='given-name'
 						required
-						ref={el => {
+						ref={(el) => {
 							inputRefs.current['firstName'] = el
 						}}
 					/>
-					{getFieldError('firstName') && (
-						<span className='field-error' style={{ color: 'red' }}>
-							{getFieldError('firstName')}
-						</span>
-					)}
+					{getInputMessage('firstName')}
 				</div>
 
 				<div id='last-name-group' className='form-group'>
@@ -134,22 +136,21 @@ const SignupPage = () => {
 						type='text'
 						id='last-name'
 						name='lastName'
+						autoComplete='family-name'
 						required
-						ref={el => {
+						ref={(el) => {
 							inputRefs.current['lastName'] = el
 						}}
 					/>
-					{getFieldError('lastName') && (
-						<span className='field-error' style={{ color: 'red' }}>
-							{getFieldError('lastName')}
-						</span>
-					)}
+					{getInputMessage('lastName')}
 				</div>
 
 				<button type='submit'>Sign Up</button>
 				<div id='login-link'>
 					Already have an account? <a href='/login'>Login</a>
 				</div>
+
+				{getGeneralMessage()}
 			</form>
 		</div>
 	)

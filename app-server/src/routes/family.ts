@@ -7,6 +7,7 @@ import { authenticate } from '../middleware/auth'
 import { apiResponse } from '../utils/api-response'
 import { Family, User } from '../utils/types'
 import { validateEnum, validateName, validatePassword, validateString, validateUsername, ValidationResult } from '../utils/validation'
+import { cleanUserRecords } from './user'
 
 const router = Router()
 router.use(authenticate)
@@ -34,7 +35,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
 		const family = (await pool.query('SELECT * FROM family WHERE id = ?', [user.familyId]).then((res) => res[0] as Family[]))[0]
 
 		// Fetch all family members for the given familyId.
-		const members = await pool.query('SELECT * FROM view_user WHERE familyId = ?', [user.familyId]).then((res) => res[0] as User[])
+		const members = await pool.query('SELECT * FROM view_user WHERE familyId = ?', [user.familyId]).then(cleanUserRecords)
 
 		return res.json(apiResponse(sender, 200, true, 'Family fetched successfully.', { family, members }))
 	} catch (err) {
@@ -62,7 +63,7 @@ router.patch('/name', authenticate, async (req: Request, res: Response) => {
 	const user = req.user
 	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
-	if (!user.isAdminX) return res.json(apiResponse(sender, 401, false, 'You do not have permision to update the family.'))
+	if (!user.isAdmin) return res.json(apiResponse(sender, 401, false, 'You do not have permision to update the family.'))
 
 	try {
 		const nameValidation = await validateString(req.body.params.name, 'Family Name', true, 3, 50)
@@ -124,7 +125,7 @@ router.put('/create', authenticate, async (req: Request, res: Response) => {
 	const user = req.user
 	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
-	if (!user.isAdminX) return res.json(apiResponse(sender, 401, false, 'Only family admin can create family members.'))
+	if (!user.isAdmin) return res.json(apiResponse(sender, 401, false, 'Only family admin can create family members.'))
 
 	try {
 		/// VALIDATE INPUTS ///
@@ -147,7 +148,7 @@ router.put('/create', authenticate, async (req: Request, res: Response) => {
 		const lastName = lastNameValidation.value!
 		validations.push(lastNameValidation)
 
-		const roleValidation = await validateEnum<User['roleX']>(params.roleX, ['admin', 'parent', 'student'], 'Role')
+		const roleValidation = await validateEnum<User['role']>(params.role, ['admin', 'parent', 'student'], 'Role')
 		const role = roleValidation.value!
 		validations.push(roleValidation)
 
@@ -165,7 +166,7 @@ router.put('/create', authenticate, async (req: Request, res: Response) => {
 			[userId, username, hashedPassword, firstName, lastName, familyId, role, passwordReset]
 		)
 
-		const newUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [userId]).then((result) => result[0] as User[]))[0]
+		const newUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [userId]).then(cleanUserRecords))[0]
 		if (!newUser) return res.json(apiResponse(sender, 501, false, 'Failed to retrieve newly created user.'))
 
 		// TODO: Broadcast to all family members that a new member was added to the family.
@@ -201,14 +202,14 @@ router.delete('/member/:id', authenticate, async (req: Request, res: Response) =
 
 	try {
 		const member = (
-			await pool.query('SELECT * FROM view_user WHERE id = ? AND familyId = ?', [targetId, user.familyId]).then((res) => res[0] as User[])
+			await pool.query('SELECT * FROM view_user WHERE id = ? AND familyId = ?', [targetId, user.familyId]).then(cleanUserRecords)
 		)[0]
 
 		if (!member) return res.json(apiResponse(sender, 402, false, 'Target not found.'))
 
 		if (!user.isParent) return res.json(apiResponse(sender, 403, false, 'You are not permited to remove other users.'))
-		if (!user.isAdminX && member.isParent) return res.json(apiResponse(sender, 404, false, 'You are not permited to remove other parents.'))
-		if (!user.isOwner && member.isAdminX) return res.json(apiResponse(sender, 405, false, 'You are not permited to remove other admin.'))
+		if (!user.isAdmin && member.isParent) return res.json(apiResponse(sender, 404, false, 'You are not permited to remove other parents.'))
+		if (!user.isOwner && member.isAdmin) return res.json(apiResponse(sender, 405, false, 'You are not permited to remove other admin.'))
 
 		await pool.execute('DELETE FROM user WHERE id = ?', [targetId])
 

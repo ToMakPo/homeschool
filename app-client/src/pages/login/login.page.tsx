@@ -1,21 +1,41 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios, { AxiosError } from 'axios'
+import axios from 'axios'
 
 import { useAuth } from '../../store/auth.ts'
-import { ApiResponse } from '../../utils/api-response.ts'
+import { type ApiResponse, type ValidationResult } from '../../utils/api-response.ts'
+import type { User } from '../../utils/types.ts'
 
 import './login.styles.scss'
 
 const LoginPage = () => {
-	const [formErrors, setFormErrors] = useState<ApiResponse[]>([])
-	const [generalError, setGeneralError] = useState<string | null>(null)
+	const [formResponse, setFormResponse] = useState<ApiResponse | null>(null)
 
 	const setAuth = useAuth((state) => state.setAuth)
 	const navigate = useNavigate()
 	const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
-	const getFieldError = (field: string) => formErrors.find((err) => err.field === field)?.message
+	const getInputMessage = (field: string) => {
+		if (!formResponse || !formResponse.data?.validations) return null
+
+		const validations = formResponse?.data?.validations as ValidationResult[]
+		if (!validations) return null
+
+		const validation = validations.find((v) => v.field === field)
+		return !validation ? null : (
+			<span className={['input-message', validation.passed ? 'passed' : 'failed'].join(' ')}>{validation.message}</span>
+		)
+	}
+
+	const getGeneralMessage = () => {
+		if (!formResponse || formResponse.data?.validations) return null
+
+		return (
+			<div id='general-error-message' className={['general-message', formResponse.passed ? 'passed' : 'failed'].join(' ')}>
+				{formResponse.message}
+			</div>
+		)
+	}
 
 	return (
 		<div id='login-page'>
@@ -24,50 +44,31 @@ const LoginPage = () => {
 				noValidate
 				onSubmit={async (e) => {
 					e.preventDefault()
-					setFormErrors([])
-					setGeneralError(null)
+					setFormResponse(null)
 
 					const formData = new FormData(e.currentTarget)
 					const data = Object.fromEntries(formData.entries())
+					data.rememberMe = 'on' // Convert checkbox value to boolean
 
 					try {
-						const response = await axios.post('/api/auth/login', data)
-						const { user, accessToken } = response.data
+						const response = await axios.post('/api/auth/login', data).then((res) => res.data as ApiResponse)
 
-						setAuth(user, accessToken, false)
+						setFormResponse(response)
 
-						navigate(`/${user.role}`)
+						if (!response.passed) return
+
+						const user = response.data.user as User
+						const accessToken = response.data.accessToken as string
+
+						setAuth(user, accessToken)
+
+						navigate(`/${user.isParent ? 'parent' : 'student'}`)
 					} catch (error) {
 						console.error('Error:', error)
-
-						if (!inputRefs.current) return
-
-						const axiosError = error as AxiosError<{ message?: string; errors?: ApiResponse[] }>
-						const responseData = axiosError.response?.data
-
-						if (responseData?.errors) {
-							const serverErrors = responseData.errors
-							setFormErrors(serverErrors)
-
-							const firstErrorField = serverErrors.find((err) => inputRefs.current[err.field])
-							if (firstErrorField) {
-								inputRefs.current[firstErrorField.field]?.focus()
-							}
-						} else if (responseData?.message) {
-							setGeneralError(responseData.message)
-						} else {
-							setGeneralError('An unexpected server error occurred.')
-						}
 					}
 				}}
 			>
 				<h1>Login</h1>
-
-				{generalError && (
-					<div id='general-error-message' style={{ color: 'red' }}>
-						{generalError}
-					</div>
-				)}
 
 				<div id='username-group' className='form-group'>
 					<label htmlFor='username'>Username</label>
@@ -75,16 +76,13 @@ const LoginPage = () => {
 						type='text'
 						id='username'
 						name='username'
+						autoComplete='username'
 						required
 						ref={(el) => {
 							inputRefs.current['username'] = el
 						}}
 					/>
-					{getFieldError('username') && (
-						<span className='field-error' style={{ color: 'red' }}>
-							{getFieldError('username')}
-						</span>
-					)}
+					{getInputMessage('username')}
 				</div>
 
 				<div id='password-group' className='form-group'>
@@ -93,16 +91,13 @@ const LoginPage = () => {
 						type='password'
 						id='password'
 						name='password'
+						autoComplete='current-password'
 						required
 						ref={(el) => {
 							inputRefs.current['password'] = el
 						}}
 					/>
-					{getFieldError('password') && (
-						<span className='field-error' style={{ color: 'red' }}>
-							{getFieldError('password')}
-						</span>
-					)}
+					{getInputMessage('password')}
 				</div>
 
 				<div id='remember-me-group' className='form-group'>
@@ -117,6 +112,8 @@ const LoginPage = () => {
 				<div id='signup-link'>
 					Don't have an account? <a href='/signup'>Sign Up</a>
 				</div>
+
+				{getGeneralMessage()}
 			</form>
 		</div>
 	)

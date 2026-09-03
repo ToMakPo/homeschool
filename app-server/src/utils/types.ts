@@ -10,10 +10,10 @@ export interface User {
 	lastName: string
 	displayName: string | null
 	familyId: string | null
-	roleX: 'owner' | 'admin' | 'parent' | 'student'
+	role: 'owner' | 'admin' | 'parent' | 'student'
 	isStudent: boolean
 	isParent: boolean
-	isAdminX: boolean
+	isAdmin: boolean
 	isOwner: boolean
 	avatarUrl: string | null
 	passwordReset: boolean
