@@ -15,9 +15,9 @@ CREATE TABLE user (
 	hashedPassword varchar(255) NOT NULL COMMENT 'Store hashed password using a secure hashing algorithm.',
 	firstName varchar(255) NOT NULL,
 	lastName varchar(255) NOT NULL,
-	displayName varchar(255) DEFAULT NULL COMMENT 
-		'Optional display name for the user. If not provided, the first name will be 
-		used as the display name.',
+	preferredName varchar(255) DEFAULT NULL COMMENT 
+		'Optional preferred name for the user. If not provided, the first name will be 
+		used as the preferred name.',
 	familyId varchar(36) DEFAULT NULL COMMENT 'The ID of the family the user belongs to. This can be NULL if the user is not part of a family.',
 	role ENUM('owner', 'admin', 'parent', 'student') NOT NULL,
 	avatarUrl varchar(512) DEFAULT NULL,
@@ -277,7 +277,7 @@ SELECT
 	u.username,
 	u.firstName,
 	u.lastName,
-	u.displayName,
+	u.preferredName,
 	u.familyId,
 	u.role, 
     CAST(u.role IN ('student') AS UNSIGNED) AS isStudent,

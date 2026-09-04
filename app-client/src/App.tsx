@@ -2,8 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 
 import { useAuth } from './store/auth.ts'
 
-import LoginPage from './pages/login/login.page.tsx'
-import SignupPage from './pages/signup/signup.page.tsx'
+import LoginPage from './pages/login/login.page'
+import SignupPage from './pages/signup/signup.page'
+import PasswordResetPage from './pages/password/password-reset.page'
+import ParentDashboard from './pages/parent/parent.portal'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
 	const user = useAuth((state) => state.user)
@@ -11,7 +13,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 	return <>{children}</>
 }
 
-function RequirePersona({ isParent, children }: { isParent: boolean; children: React.ReactNode }) {
+function RequireRole({ isParent, children }: { isParent: boolean; children: React.ReactNode }) {
 	const user = useAuth((state) => state.user)
 	if (!user || user.isParent !== isParent) return <Navigate to='/login' replace />
 	return <>{children}</>
@@ -37,10 +39,9 @@ export default function App() {
 				<Route
 					path='/parent'
 					element={
-						<RequirePersona isParent={true}>
-							<h1>Parent Dashboard</h1>
-							<pre>{JSON.stringify(user, null, 2)}</pre>
-						</RequirePersona>
+						<RequireRole isParent={true}>
+							<ParentDashboard />
+						</RequireRole>
 					}
 				/>
 
@@ -48,12 +49,12 @@ export default function App() {
 				<Route
 					path='/student'
 					element={
-						<RequirePersona isParent={false}>
+						<RequireRole isParent={false}>
 							<div>
 								<h1>Student Dashboard</h1>
 								<pre>{JSON.stringify(user, null, 2)}</pre>
 							</div>
-						</RequirePersona>
+						</RequireRole>
 					}
 				/>
 

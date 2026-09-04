@@ -8,7 +8,8 @@ export interface User {
 	username: string
 	firstName: string
 	lastName: string
-	displayName: string | null
+	preferredName: string | null
+	displayName: string
 	familyId: string | null
 	role: 'owner' | 'admin' | 'parent' | 'student'
 	isStudent: boolean

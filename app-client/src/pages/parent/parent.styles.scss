@@ -1,0 +1,9 @@
+#parent-portal {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	grid-template-rows: 1fr;
+	grid-template-areas: 'dash-panel main-content';
+
+	height: 100cqh;
+	width: 100cqw;
+}

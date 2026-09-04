@@ -11,6 +11,7 @@ const router = Router()
 router.use(authenticate)
 
 export function formatUser(user: User): User {
+	user.displayName = user.preferredName || user.firstName
 	user.isStudent = Boolean(user.isStudent)
 	user.isParent = Boolean(user.isParent)
 	user.isAdmin = Boolean(user.isAdmin)
@@ -68,6 +69,8 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
 router.patch('/', authenticate, async (req: Request, res: Response) => {
 	const sender = 'PATCH_USER_SELF'
 
+	console.log('PATCH_USER_SELF called', req.body)
+
 	const user = req.user
 	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
@@ -94,16 +97,16 @@ router.patch('/', authenticate, async (req: Request, res: Response) => {
 		validations.push(lastNameValidation)
 	}
 
-	if (updates.displayName !== undefined) {
-		const displayNameValidation = await validateName(updates.displayName, 'Display name', true)
-		newValues.displayName = displayNameValidation.value!
-		validations.push(displayNameValidation)
+	if (updates.preferredName !== undefined) {
+		const preferredNameValidation = await validateName(updates.preferredName, 'Preferred name', true)
+		newValues.preferredName = preferredNameValidation.value!
+		validations.push(preferredNameValidation)
 	}
 
 	if (updates.role !== undefined) {
-		const personaValidation = await validateEnum<User['role']>(updates.role, ['admin', 'parent', 'student'], 'Role')
-		newValues.role = personaValidation.value!
-		validations.push(personaValidation)
+		const roleValidation = await validateEnum<User['role']>(updates.role, ['admin', 'parent', 'student'], 'Role')
+		newValues.role = roleValidation.value!
+		validations.push(roleValidation)
 	}
 
 	if (updates.isAdmin !== undefined) {
@@ -133,6 +136,7 @@ router.patch('/', authenticate, async (req: Request, res: Response) => {
 
 		// TODO: Broadcast to all family members that the user has updated their information.
 
+		console.log('PATCH_USER_SELF success', updatedUser)
 		return res.json(apiResponse(sender, 200, true, 'User updated successfully.', updatedUser))
 	} catch (err) {
 		console.error(err)
@@ -155,18 +159,19 @@ router.patch('/', authenticate, async (req: Request, res: Response) => {
  */
 router.patch('/avatar', authenticate, upload.single('avatar'), async (req: Request, res: Response) => {
 	const sender = 'PATCH_USER_AVATAR'
+	console.log('PATCH_USER_AVATAR called', req.file, req.body)
 
 	const user = req.user
-	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
+	if (!user) return res.json(apiResponse(sender, 1400, false, 'You are not authenticated.'))
 
 	const file = req.file
 	if (!file) {
-		return res.json(apiResponse(sender, 401, false, 'No file uploaded'))
+		return res.json(apiResponse(sender, 1401, false, 'No file uploaded'))
 	}
 
 	try {
 		const avatarUrl = `/uploads/${file.filename}`
-		await pool.execute('UPDATE user SET avatar_url = ? WHERE id = ?', [avatarUrl, user.id])
+		await pool.execute('UPDATE user SET avatarUrl = ? WHERE id = ?', [avatarUrl, user.id])
 
 		//TODO: brodcast to all family members that the user has updated their avatar.
 

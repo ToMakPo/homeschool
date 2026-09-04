@@ -1,0 +1,92 @@
+body, html, #root {
+	height: 100dvh;
+	width: 100dvw;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+#root {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	container-type: inline-size;
+	font-family: quicksand, sans-serif;
+}
+
+
+.uppercase {
+	text-transform: uppercase;
+}
+
+///////////////
+/// BUTTONS ///
+///////////////
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	padding: 0.5rem 1rem;
+
+	border: none;
+	border-radius: 100vw;
+
+	--bg: var(--color-button-bg, #666666);
+	--fg: var(--color-button-fg, #ffffff);
+
+	background-color: var(--bg);
+	color: var(--fg);
+
+	font-size: 1rem;
+	font-weight: bold;
+
+	cursor: pointer;
+
+	--t: 0.5s ease-in-out;
+	transition: background-color var(--t), color var(--t), filter var(--t);
+
+	&:hover {
+		filter: brightness(0.9);
+	}
+
+	&.primary {
+		--bg: var(--color-button-primary-bg, #007bff);
+		--fg: var(--color-button-primary-fg, #ffffff);
+	}
+
+	&.secondary {
+		--bg: var(--color-button-secondary-bg, #6c757d);
+		--fg: var(--color-button-secondary-fg, #ffffff);
+	}
+
+	&.success {
+		--bg: var(--color-button-success-bg, #28a745);
+		--fg: var(--color-button-success-fg, #ffffff);
+	}
+
+	&.danger {
+		--bg: var(--color-button-danger-bg, #a40909);
+		--fg: var(--color-button-danger-fg, #ffffff);
+	}
+
+	&.warning {
+		--bg: var(--color-button-warning-bg, #d39e00);
+		--fg: var(--color-button-warning-fg, #212529);
+	}
+	
+	&.outline {
+		background-color: hsl(from var(--bg) h s l / 5%);
+		color: var(--bg);
+		border: 1px solid var(--bg);
+
+		&:hover {
+			background-color: hsl(from var(--bg) h s l / 15%);
+		}
+	}
+}

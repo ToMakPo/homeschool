@@ -83,7 +83,7 @@ export async function validateUsername(username: any, ignoreId?: string): Promis
 
 	const isUnique = await pool
 		.query('SELECT COUNT(*) AS count FROM user WHERE username = ? AND id != ?', [value, ignoreId ?? ''])
-		.then(res => (res[0] as any[])[0].count === 0)
+		.then((res) => (res[0] as any[])[0].count === 0)
 
 	if (!isUnique) {
 		return validationResult<string>(false, 'Username is already taken', undefined, 'username')
@@ -108,50 +108,52 @@ export async function validateUsername(username: any, ignoreId?: string): Promis
  * @returns A promise that resolves to a `ValidationResult` object containing the
  * validation result, message, and cleaned value.
  */
-export async function validatePassword(password: any, confirmation?: any): Promise<ValidationResult<string>> {
+export async function validatePassword(password: any, confirmation?: any, fieldName = 'password'): Promise<ValidationResult<string>> {
+	const field = toKey(fieldName)
+
 	if (password === undefined || password === null) {
-		return validationResult<string>(false, 'Password is required', undefined, 'password')
+		return validationResult<string>(false, 'Password is required', undefined, field)
 	}
 
 	if (typeof password !== 'string') {
-		return validationResult<string>(false, 'Password must be a string', undefined, 'password')
+		return validationResult<string>(false, 'Password must be a string', undefined, field)
 	}
 
 	const value = password.trim()
 
 	if (value.length < PASSWORD_MIN_LENGTH) {
-		return validationResult<string>(false, `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`, undefined, 'password')
+		return validationResult<string>(false, `Password must be at least ${PASSWORD_MIN_LENGTH} characters long`, undefined, field)
 	}
 
 	if (value.length > PASSWORD_MAX_LENGTH) {
-		return validationResult<string>(false, `Password must be at most ${PASSWORD_MAX_LENGTH} characters long`, undefined, 'password')
+		return validationResult<string>(false, `Password must be at most ${PASSWORD_MAX_LENGTH} characters long`, undefined, field)
 	}
 
 	if (!PASSWORD_UPPERCASE_REGEX.test(value)) {
-		return validationResult<string>(false, 'Password must contain at least one uppercase letter', undefined, 'password')
+		return validationResult<string>(false, 'Password must contain at least one uppercase letter', undefined, field)
 	}
 
 	if (!PASSWORD_LOWERCASE_REGEX.test(value)) {
-		return validationResult<string>(false, 'Password must contain at least one lowercase letter', undefined, 'password')
+		return validationResult<string>(false, 'Password must contain at least one lowercase letter', undefined, field)
 	}
 
 	if (!PASSWORD_NUMBER_REGEX.test(value)) {
-		return validationResult<string>(false, 'Password must contain at least one number', undefined, 'password')
+		return validationResult<string>(false, 'Password must contain at least one number', undefined, field)
 	}
 
 	if (!PASSWORD_SPECIAL_CHAR_REGEX.test(value)) {
-		return validationResult<string>(false, 'Password must contain at least one special character', undefined, 'password')
+		return validationResult<string>(false, 'Password must contain at least one special character', undefined, field)
 	}
 
 	if (PASSWORD_INVALID_CHAR_REGEX.test(value)) {
-		return validationResult<string>(false, 'Password contains invalid characters', undefined, 'password')
+		return validationResult<string>(false, 'Password contains invalid characters', undefined, field)
 	}
 
 	if (confirmation !== undefined && value !== confirmation) {
 		return validationResult<string>(false, 'Password and confirmation do not match', undefined, 'confirmation')
 	}
 
-	return validationResult<string>(true, 'Password is valid', value, 'password')
+	return validationResult<string>(true, 'Password is valid', value, field)
 }
 
 /** Validates a name.
@@ -280,7 +282,7 @@ export async function validateEnum<T>(value: any, allowedValues: T[], fieldName:
 		return validationResult<T>(
 			false,
 			`${fieldName} must be one of the following values: ${allowedValues
-				.map(v => {
+				.map((v) => {
 					return typeof v === 'string' ? `'${v}'` : v
 				})
 				.join(', ')}`,

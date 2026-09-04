@@ -74,18 +74,17 @@ router.post('/register', async (req: Request, res: Response) => {
 			role
 		])
 
-		const newUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [userId]).then(cleanUserRecords))[0]
-		if (!newUser) return res.json(apiResponse(sender, 501, false, 'Failed to retrieve newly created user.'))
+		const user = (await pool.query('SELECT * FROM view_user WHERE id = ?', [userId]).then(cleanUserRecords))[0]
+		if (!user) return res.json(apiResponse(sender, 501, false, 'Failed to retrieve newly created user.'))
 
-		const { accessToken, expiresAt } = signToken(newUser)
+		const { accessToken, expiresAt } = signToken(user)
 
-		const queryParams = [uuidv4(), newUser.id, accessToken, expiresAt]
-		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', queryParams)
+		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [uuidv4(), user.id, accessToken, expiresAt])
 
 		// TODO: Broadcast to all family members that the user has logged in.
 		// TODO: Once email verification is implemented, send a verification email to the new user.
 
-		return res.json(apiResponse(sender, 200, true, 'New user and new family created.', { user: newUser, accessToken }))
+		return res.json(apiResponse(sender, 200, true, 'New user and new family created.', { user: user, accessToken }))
 	} catch (error) {
 		console.error(error)
 		return res.json(apiResponse(sender, 500, false, 'An error occurred while creating the user.', error))
@@ -240,67 +239,58 @@ router.post('/logout-all', authenticate, async (req: Request, res: Response) => 
  * @middleware authenticate
  * @param {string} currentPassword - The user's current password.
  * @param {string} newPassword - The new password to set.
+ * @param {string} confirmation - Confirmation of the new password (must match newPassword).
  * @returns {Object} A message indicating the result of the operation.
  */
 router.patch('/password', authenticate, async (req: Request, res: Response) => {
+	const sender = 'PATCH_AUTH_PASSWORD'
+
 	const user = req.user
-	if (!user) return res.status(401).json({ passed: false, message: 'Unauthorized', field: 'user' })
+	if (!user) return res.json(apiResponse(sender, 400, false, 'User not authenticated'))
 
-	const { currentPassword, newPassword, confirmation } = req.body
-
-	if (!currentPassword)
-		return res.status(400).json({
-			passed: false,
-			message: 'Current password is required',
-			field: 'currentPassword'
-		})
-	if (!newPassword)
-		return res.status(400).json({
-			passed: false,
-			message: 'New password is required',
-			field: 'newPassword'
-		})
-	if (!confirmation)
-		return res.status(400).json({
-			passed: false,
-			message: 'Password confirmation is required',
-			field: 'confirmation'
-		})
-
-	if (newPassword !== confirmation)
-		return res.status(400).json({
-			passed: false,
-			message: 'New password and confirmation do not match',
-			field: 'confirmation'
-		})
-
-	const { passed, message, value } = await validatePassword(newPassword)
-
-	if (!passed) return res.status(400).json({ passed: false, message, field: 'newPassword' })
+	const params = req.body.params
 
 	try {
-		const storedHash = await pool.query('SELECT password FROM user WHERE id = ?', [user.id]).then((res) => (res[0] as any[])[0].password)
+		const validations: ValidationResult<any>[] = []
 
-		const isMatch = await bcrypt.compare(currentPassword, storedHash)
+		const currentPasswordValidation = await validateString(params.currentPassword, 'Current password', false)
+		const currentPassword = currentPasswordValidation.value!
+		validations.push(currentPasswordValidation)
 
-		if (!isMatch)
-			return res.status(400).json({
-				passed: false,
-				message: 'Current password is incorrect',
-				field: 'currentPassword'
-			})
+		if (currentPasswordValidation.passed) {
+			const storedHash = await pool
+				.query('SELECT hashedPassword FROM user WHERE id = ?', [user.id])
+				.then((res) => (res[0] as any[])[0].hashedPassword)
 
-		const newHash = await bcrypt.hash(value!, 10)
+			const isMatch = await bcrypt.compare(currentPassword, storedHash)
 
-		await pool.execute('UPDATE user SET password = ? WHERE id = ?', [newHash, user.id])
+			if (!isMatch) {
+				const matchValidation: ValidationResult<string> = {
+					passed: false,
+					message: 'Current password is incorrect',
+					field: 'currentPassword'
+				}
 
-		return res.json({
-			passed: true,
-			message: 'Password changed successfully'
-		})
+				validations.splice(-1, 1, matchValidation)
+			}
+		}
+
+		const newPasswordValidation = await validatePassword(params.newPassword, params.confirmation, 'New password')
+		const newPassword = newPasswordValidation.value!
+		validations.push(newPasswordValidation)
+
+		console.log('PATCH_AUTH_PASSWORD validations', validations)
+
+		if (validations.some((v) => !v.passed)) return res.json(apiResponse(sender, 401, false, 'Validation failed', { validations }))
+
+		const newHash = await bcrypt.hash(newPassword, 10)
+
+		await pool.execute('UPDATE user SET hashedPassword = ? WHERE id = ?', [newHash, user.id])
+
+		return res.json(apiResponse(sender, 200, true, 'Password updated successfully'))
 	} catch (err) {
 		console.error(err)
-		return res.status(500).json({ passed: false, message: 'Internal server error' })
+		return res.json(apiResponse(sender, 500, false, 'An error occurred while updating the password', err))
 	}
 })
 

@@ -1,0 +1,11 @@
+.avatar-component {
+	border-radius: 50%;
+
+	&.initials {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: bold;
+		text-transform: uppercase;
+	}
+}
