@@ -163,98 +163,6 @@ CREATE TABLE comment (
 	FOREIGN KEY (userId) REFERENCES user(id) ON DELETE CASCADE
 );
 
--- Attachments can be associated with assignments, tasks, or comments. This allows
--- for files to be uploaded and shared as part of the assignment process. For 
--- example, for example, a parent may upload a PDF of math problems for a student
--- to complete and the student can then upload a PDF of their completed work.
-CREATE TABLE attachment (
-	id varchar(36) PRIMARY KEY,
-	familyId varchar(36) NOT NULL,
-	url varchar(512) NOT NULL,
-	fileName varchar(255) NOT NULL,
-	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	FOREIGN KEY (familyId) REFERENCES family(id) ON DELETE CASCADE
-);
-
-CREATE TABLE assignment_attachment (
-	id varchar(36) PRIMARY KEY,
-	assignmentId varchar(36) NOT NULL,
-	attachmentId varchar(36) NOT NULL,
-	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	FOREIGN KEY (assignmentId) REFERENCES assignment(id) ON DELETE CASCADE,
-	FOREIGN KEY (attachmentId) REFERENCES attachment(id) ON DELETE CASCADE
-);
-
-CREATE TABLE task_attachment (
-	id varchar(36) PRIMARY KEY,
-	taskId varchar(36) NOT NULL,
-	attachmentId varchar(36) NOT NULL,
-	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	FOREIGN KEY (taskId) REFERENCES task(id) ON DELETE CASCADE,
-	FOREIGN KEY (attachmentId) REFERENCES attachment(id) ON DELETE CASCADE
-);
-
-CREATE TABLE comment_attachment (
-	id varchar(36) PRIMARY KEY,
-	commentId varchar(36) NOT NULL,
-	attachmentId varchar(36) NOT NULL,
-	createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	FOREIGN KEY (commentId) REFERENCES comment(id) ON DELETE CASCADE,
-	FOREIGN KEY (attachmentId) REFERENCES attachment(id) ON DELETE CASCADE
-);
-
-
--- -----------------------
--- --- CREATE TRIGGERS ---
--- -----------------------
-
-DELIMITER $$
-
-CREATE TRIGGER after_assignment_attachment_delete
-AFTER DELETE ON assignment_attachment
-FOR EACH ROW
-BEGIN
-    -- Check if the attachment is still used by task or comment
-    IF NOT EXISTS (SELECT 1 FROM assignment_attachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM task_attachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM comment_attachment WHERE attachmentId = OLD.attachmentId) THEN
-        
-        -- If no references exist, delete the orphan attachment
-        DELETE FROM attachment WHERE id = OLD.attachmentId;
-    END IF;
-END$$
-
-CREATE TRIGGER after_task_attachment_delete
-AFTER DELETE ON task_attachment
-FOR EACH ROW
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM assignment_attachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM task_attachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM comment_attachment WHERE attachmentId = OLD.attachmentId) THEN
-        
-        DELETE FROM attachment WHERE id = OLD.attachmentId;
-    END IF;
-END$$
-
-CREATE TRIGGER after_comment_attachment_delete
-AFTER DELETE ON comment_attachment
-FOR EACH ROW
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM assignment_attachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM task_attachment WHERE attachmentId = OLD.attachmentId) AND
-		NOT EXISTS (SELECT 1 FROM comment_attachment WHERE attachmentId = OLD.attachmentId) THEN
-        
-        DELETE FROM attachment WHERE id = OLD.attachmentId;
-    END IF;
-END$$
-
-DELIMITER ;
-
-
 -- ---------------------
 -- --- CREATE EVENTS ---
 -- ---------------------
@@ -288,5 +196,9 @@ SELECT
 	u.passwordReset,
 	u.createdAt
 FROM user u;
+
+-- ----------------------
+-- --- CREATE INDEXES ---
+-- ----------------------
 
 CREATE INDEX idx_user_familyId ON user(familyId);
