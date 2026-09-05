@@ -4,6 +4,7 @@ node_modules
 
 dist
 *uploads
+*seed-data.json
 
 *.OLD*
 *.NEW*
