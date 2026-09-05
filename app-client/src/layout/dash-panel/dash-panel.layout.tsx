@@ -12,16 +12,13 @@ const DashPanelLayout = () => {
 
 	if (!user) return <div>Loading...</div>
 
+	const fullName = `${user.firstName} ${user.lastName}`
+
 	type NavigationItem = {
 		panel: SelectedLayout
 		label: string
 	}
-	const navigationItems = [
-		{ panel: 'dashboard', label: 'Dashboard' },
-		{ panel: 'dashboardx', label: 'About' },
-		{ panel: 'dashboardy', label: 'Take the Test' },
-		{ panel: 'dashboardz', label: 'Contavt' }
-	].filter(Boolean) as NavigationItem[]
+	const navigationItems = [{ panel: 'dashboard', label: 'Dashboard' }].filter(Boolean) as NavigationItem[]
 
 	const navigation = (
 		<div id='dash-panel-navigation'>
@@ -37,13 +34,12 @@ const DashPanelLayout = () => {
 		<div id='dash-panel-footer'>
 			<div id='user-info' onClick={() => setSelectedLayout('profile')}>
 				<Avatar user={user} />
-				<span className='display-name'>
-					{user.displayName} {user.lastName}
-				</span>
+				<span className='display-name'>{user.preferredName ?? fullName}</span>
 				<span className='role'>{user.role}</span>
 			</div>
 
 			<hr />
+
 			<button id='logout-button' className='btn danger outline' onClick={() => logout()}>
 				Logout
 			</button>
