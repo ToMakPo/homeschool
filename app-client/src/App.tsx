@@ -14,9 +14,7 @@ function isTokenExpired(token: string): boolean {
 	try {
 		const payload = JSON.parse(atob(token.split('.')[1]))
 
-		if (!payload.exp) {
-			return true
-		}
+		if (!payload.exp) return true
 
 		return payload.exp * 1000 <= Date.now()
 	} catch {
@@ -32,14 +30,10 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 	const tokenExpired = !accessToken || isTokenExpired(accessToken)
 
 	useEffect(() => {
-		if (!user || tokenExpired) {
-			clearAuth()
-		}
+		if (!user || tokenExpired) clearAuth()
 	}, [user, tokenExpired, clearAuth])
 
-	if (!user || tokenExpired) {
-		return <Navigate to='/login' replace />
-	}
+	if (!user || tokenExpired) return <Navigate to='/login' replace />
 
 	return <>{children}</>
 }
@@ -52,20 +46,14 @@ function RequireRole({ role, children }: { role: User['role']; children: React.R
 	const tokenExpired = !accessToken || isTokenExpired(accessToken)
 
 	useEffect(() => {
-		if (!user || tokenExpired) {
-			clearAuth()
-		}
+		if (!user || tokenExpired) clearAuth()
 	}, [user, tokenExpired, clearAuth])
 
-	if (!user || tokenExpired) {
-		return <Navigate to='/login' replace />
-	}
+	if (!user || tokenExpired) return <Navigate to='/login' replace />
 
 	const roleKey = `is${role.charAt(0).toUpperCase() + role.slice(1)}` as `is${Capitalize<User['role']>}`
 
-	if (!user[roleKey]) {
-		return <Navigate to='/login' replace />
-	}
+	if (!user[roleKey]) return <Navigate to='/login' replace />
 
 	return <>{children}</>
 }
@@ -73,11 +61,11 @@ function RequireRole({ role, children }: { role: User['role']; children: React.R
 function RootRedirect() {
 	const user = useAuth((state) => state.user)
 
-	if (!user) {
-		return <Navigate to='/login' replace />
-	}
+	if (!user) return <Navigate to='/login' replace />
 
-	return <Navigate to={`/${user.role}`} replace />
+	const path = user.isParent ? 'parent' : 'student'
+
+	return <Navigate to={`/${path}`} replace />
 }
 
 function StudentDashboard() {
@@ -92,24 +80,13 @@ function StudentDashboard() {
 }
 
 export default function App() {
-	/*
-	 * Zustand persist loads the saved authentication state
-	 * asynchronously. Don't let the router make authentication
-	 * decisions until that process has finished.
-	 */
+	// Zustand persist loads the saved authentication state asynchronously. Don't
+	// let the router make authentication decisions until that process has finished.
 	const [hydrated, setHydrated] = useState(useAuth.persist.hasHydrated())
 
-	useEffect(() => {
-		const unsubscribe = useAuth.persist.onFinishHydration(() => {
-			setHydrated(true)
-		})
+	useEffect(() => useAuth.persist.onFinishHydration(() => setHydrated(true)), [])
 
-		return unsubscribe
-	}, [])
-
-	if (!hydrated) {
-		return <div>Loading...</div>
-	}
+	if (!hydrated) return <div>Loading...</div>
 
 	return (
 		<BrowserRouter>

@@ -22,39 +22,21 @@ export const useAuth = create<AuthState>()(
 
 			setAuth: (user, accessToken) => set({ user, accessToken }),
 
-			clearAuth: () => {
-				set({
-					user: null,
-					accessToken: null
-				})
-			},
+			clearAuth: () => set({ user: null, accessToken: null }),
 
-			setUser: (user) => {
-				set({ user })
-			},
+			setUser: (user) => set({ user }),
 
 			logout: async () => {
-				set({
-					user: null,
-					accessToken: null
-				})
+				set({ user: null, accessToken: null })
 
 				window.location.href = '/login'
 
-				try {
-					await axios.post('/api/auth/logout')
-				} catch (error) {
-					console.error('Logout request failed:', error)
-				}
+				await axios.post('/api/auth/logout').catch((e) => console.error('Logout request failed:', e))
 			}
 		}),
 		{
 			name: 'homeschool-auth',
-
-			partialize: (state) => ({
-				user: state.user,
-				accessToken: state.accessToken
-			})
+			partialize: (state) => ({ user: state.user, accessToken: state.accessToken })
 		}
 	)
 )
