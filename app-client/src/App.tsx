@@ -10,53 +10,120 @@ import ParentDashboard from './pages/parent/parent.portal'
 
 import type { User } from './utils/types.ts'
 
-type RoleKey<R extends string> = `is${Capitalize<R>}` & keyof User
+function isTokenExpired(token: string): boolean {
+	try {
+		const payload = JSON.parse(atob(token.split('.')[1]))
 
-function loginRedirect(userRenderCallback?: (user: User) => React.JSX.Element) {
-	const user = useAuth((state) => state.user)
-	const accessToken = useAuth((state) => state.accessToken)
+		if (!payload.exp) {
+			return true
+		}
 
-	// Redirect to login if user or access token is missing.
-	if (!user || !accessToken) return <Navigate to='/login' replace />
-
-	// Render the user-specific content if a callback is provided.
-	const rendered = userRenderCallback && userRenderCallback(user)
-	if (rendered) return rendered
-
-	// If no user-specific content is rendered, return null.
-	return null
+		return payload.exp * 1000 <= Date.now()
+	} catch {
+		return true
+	}
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-	return loginRedirect(() => <>{children}</>)
+	const user = useAuth((state) => state.user)
+	const accessToken = useAuth((state) => state.accessToken)
+	const clearAuth = useAuth((state) => state.clearAuth)
+
+	const tokenExpired = !accessToken || isTokenExpired(accessToken)
+
+	useEffect(() => {
+		if (!user || tokenExpired) {
+			clearAuth()
+		}
+	}, [user, tokenExpired, clearAuth])
+
+	if (!user || tokenExpired) {
+		return <Navigate to='/login' replace />
+	}
+
+	return <>{children}</>
 }
 
 function RequireRole({ role, children }: { role: User['role']; children: React.ReactNode }) {
-	return loginRedirect((user) => {
-		const isRoleKey = `is${role.charAt(0).toUpperCase() + role.slice(1)}` as RoleKey<typeof role>
-		return user[isRoleKey] ? <>{children}</> : <Navigate to='/login' replace />
-	})
+	const user = useAuth((state) => state.user)
+	const accessToken = useAuth((state) => state.accessToken)
+	const clearAuth = useAuth((state) => state.clearAuth)
+
+	const tokenExpired = !accessToken || isTokenExpired(accessToken)
+
+	useEffect(() => {
+		if (!user || tokenExpired) {
+			clearAuth()
+		}
+	}, [user, tokenExpired, clearAuth])
+
+	if (!user || tokenExpired) {
+		return <Navigate to='/login' replace />
+	}
+
+	const roleKey = `is${role.charAt(0).toUpperCase() + role.slice(1)}` as `is${Capitalize<User['role']>}`
+
+	if (!user[roleKey]) {
+		return <Navigate to='/login' replace />
+	}
+
+	return <>{children}</>
 }
 
 function RootRedirect() {
-	return loginRedirect((user) => <Navigate to={`/${user!.role}`} replace />)
+	const user = useAuth((state) => state.user)
+
+	if (!user) {
+		return <Navigate to='/login' replace />
+	}
+
+	return <Navigate to={`/${user.role}`} replace />
+}
+
+function StudentDashboard() {
+	const user = useAuth((state) => state.user)
+
+	return (
+		<div>
+			<h1>Student Dashboard</h1>
+			<pre>{JSON.stringify(user, null, 2)}</pre>
+		</div>
+	)
 }
 
 export default function App() {
+	/*
+	 * Zustand persist loads the saved authentication state
+	 * asynchronously. Don't let the router make authentication
+	 * decisions until that process has finished.
+	 */
 	const [hydrated, setHydrated] = useState(useAuth.persist.hasHydrated())
-	useEffect(() => useAuth.persist.onFinishHydration(() => setHydrated(true)), [])
-	if (!hydrated) return <div>Loading...</div>
 
-	const user = useAuth((state) => state.user)
+	useEffect(() => {
+		const unsubscribe = useAuth.persist.onFinishHydration(() => {
+			setHydrated(true)
+		})
+
+		return unsubscribe
+	}, [])
+
+	if (!hydrated) {
+		return <div>Loading...</div>
+	}
 
 	return (
 		<BrowserRouter>
 			<Routes>
 				{/* Public Routes */}
+
 				<Route path='/login' element={<LoginPage />} />
+
 				<Route path='/signup' element={<SignupPage />} />
 
+				<Route path='/password-reset' element={<PasswordResetPage />} />
+
 				{/* Parent Routes */}
+
 				<Route
 					path='/parent'
 					element={
@@ -67,19 +134,18 @@ export default function App() {
 				/>
 
 				{/* Student Routes */}
+
 				<Route
 					path='/student'
 					element={
 						<RequireRole role='student'>
-							<div>
-								<h1>Student Dashboard</h1>
-								<pre>{JSON.stringify(user, null, 2)}</pre>
-							</div>
+							<StudentDashboard />
 						</RequireRole>
 					}
 				/>
 
 				{/* Root Redirect */}
+
 				<Route
 					path='/'
 					element={
@@ -88,6 +154,9 @@ export default function App() {
 						</RequireAuth>
 					}
 				/>
+
+				{/* Unknown Routes */}
+
 				<Route path='*' element={<Navigate to='/' replace />} />
 			</Routes>
 		</BrowserRouter>

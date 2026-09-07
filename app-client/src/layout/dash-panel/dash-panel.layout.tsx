@@ -5,12 +5,10 @@ import { SelectedLayout, useNavigation } from '../../store/navigation'
 import './dash-panel.styles.scss'
 
 const DashPanelLayout = () => {
-	const user = useAuth((state) => state.user)
+	const user = useAuth((state) => state.user)!
 	const logout = useAuth((state) => state.logout)
 
 	const setSelectedLayout = useNavigation((state) => state.setSelectedLayout)
-
-	if (!user) return <div>Loading...</div>
 
 	const fullName = `${user.firstName} ${user.lastName}`
 
