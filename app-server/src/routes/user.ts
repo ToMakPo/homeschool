@@ -11,7 +11,6 @@ const router = Router()
 router.use(authenticate)
 
 export function formatUser(user: User): User {
-	user.displayName = user.preferredName || user.firstName
 	user.isStudent = Boolean(user.isStudent)
 	user.isParent = Boolean(user.isParent)
 	user.isAdmin = Boolean(user.isAdmin)

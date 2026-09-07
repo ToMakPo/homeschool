@@ -1,0 +1,101 @@
+#nav-panel {
+	grid-area: dash-panel;
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+	background-color: var(--color-nav-panel-bg, #dddddd);
+	border-right: 1px solid var(--color-border, #aaaaaa);
+	color: var(--color-nav-panel-fg, #4f4f4f);
+	position: relative;
+	anchor-name: --nav-panel;
+
+	#nav-toggle-button {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+
+		position: absolute;
+		position-anchor: --nav-panel;
+		top: 0.5rem;
+		right: 0;
+		transform: translateX(50%);
+		padding-inline: 0.35rem;
+		transition: padding-inline 0.3s;
+
+		z-index: 1;
+		cursor: pointer;
+
+		.icon-component {
+			background-color: var(--color-nav-panel-bg, #dddddd);
+			border: 1px solid var(--color-border, #aaaaaa);
+			border-radius: 0.5rem;
+			filter: brightness(0.9);
+		}
+	}
+
+	#navigation-items {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-block: 2.5rem;
+	}
+		
+	.nav-item {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+		cursor: pointer;
+		transition: 0.3s;
+		background-color: var(--color-nav-panel-bg, #dddddd);
+
+		&:hover {
+			filter: brightness(0.9);
+		}
+
+		&.active {
+			background-color: var(--color-nav-item-ac, #a8b8d8);
+		}
+	}
+
+	#logout-button {
+		margin-top: auto;
+	}
+
+	&.expanded {
+		width: 250px;
+
+		#nav-toggle-button:hover {
+			padding-inline: 0 0.7rem;
+		}
+	}
+	&.collapsed {
+		width: fit-content;
+
+		padding-inline: 0.25rem !important;
+
+		#navigation-items {
+			margin-block: 2.5rem;
+		}
+
+		.nav-item {
+			padding: 0.25rem !important;
+			border-radius: 0.5rem;
+		}
+
+		.collapsable {
+			display: none;
+		}
+
+		#nav-toggle-button {
+			right: 50%;
+			&:hover {
+				padding-inline: 0.7rem 0;
+			}
+		}
+
+		#logout-button {
+			margin-bottom: 0.5rem;
+		}
+	}
+}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { getRoleKey } from './utils/globals.ts'
 
 import { useAuth } from './store/auth.ts'
 
 import LoginPage from './pages/login/login.page'
 import SignupPage from './pages/signup/signup.page'
 import PasswordResetPage from './pages/password/password-reset.page'
-import ParentDashboard from './pages/parent/parent.portal'
+import ParentDashboard from './pages/portal/portal.page.tsx'
 
 import type { User } from './utils/types.ts'
 
@@ -51,9 +52,7 @@ function RequireRole({ role, children }: { role: User['role']; children: React.R
 
 	if (!user || tokenExpired) return <Navigate to='/login' replace />
 
-	const roleKey = `is${role.charAt(0).toUpperCase() + role.slice(1)}` as `is${Capitalize<User['role']>}`
-
-	if (!user[roleKey]) return <Navigate to='/login' replace />
+	if (!user[getRoleKey(role)]) return <Navigate to='/login' replace />
 
 	return <>{children}</>
 }

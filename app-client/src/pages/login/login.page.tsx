@@ -2,9 +2,10 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-import { useAuth } from '../../store/auth.ts'
 import { type ApiResponse, type ValidationResult } from '../../utils/api-response.ts'
 import type { User } from '../../utils/types.ts'
+
+import { useAuth } from '../../store/auth.ts'
 
 import './login.styles.scss'
 

@@ -4,21 +4,24 @@ import type { User } from '../../utils/types'
 
 import './avatar.styles.scss'
 
-interface AvatarProps {
+interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
 	user: User
 	size?: number | string
-	onClick?: () => void
 }
 
-const Avatar = ({ user, size = 40, onClick }: AvatarProps) => {
+const Avatar = (props: AvatarProps) => {
+	const { user, size = 40, onClick, ...rest } = props
+
 	const style: React.CSSProperties = {}
-	size = typeof size === 'number' ? `${size}px` : size
-	style.width = size
-	style.height = size
+	const sizeStr = typeof size === 'number' ? `${size}px` : size
+	style.width = sizeStr
+	style.height = sizeStr
+
+	const classNames = ['avatar-component', onClick ? 'clickable' : '', user.avatarUrl ? '' : 'initials'].filter(Boolean).join(' ')
 
 	if (user.avatarUrl) {
 		const url = 'http://localhost:3001' + user.avatarUrl // TODO: Replace with your server URL or use an environment variable
-		return <img className='avatar-component' src={url} alt={`${user.displayName}'s avatar`} style={style} onClick={onClick} />
+		return <img className={classNames} src={url} alt={`${user.displayName}'s avatar`} style={style} onClick={onClick} {...rest} />
 	}
 
 	const initials = (user.displayName[0] + user.lastName[0]).toUpperCase()
@@ -29,10 +32,10 @@ const Avatar = ({ user, size = 40, onClick }: AvatarProps) => {
 	const bgColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`
 	style.backgroundColor = bgColor
 	style.color = `contrast-color(${bgColor})`
-	style.fontSize = `calc(${size} / 2.25)`
+	style.fontSize = `calc(${sizeStr} / 2.25)`
 
 	return (
-		<div className='avatar-component initials' style={style} onClick={onClick}>
+		<div className={classNames} style={style} onClick={onClick} {...rest}>
 			{initials}
 		</div>
 	)

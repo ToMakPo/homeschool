@@ -185,7 +185,12 @@ SELECT
 	u.username,
 	u.firstName,
 	u.lastName,
+	CONCAT(u.firstName, ' ', u.lastName) AS fullName,
 	u.preferredName,
+	CASE
+		WHEN u.preferredName IS NOT NULL THEN u.preferredName
+		ELSE u.firstName
+	END AS displayName,
 	u.familyId,
 	u.role, 
     CAST(u.role IN ('student') AS UNSIGNED) AS isStudent,

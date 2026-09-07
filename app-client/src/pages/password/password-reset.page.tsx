@@ -2,8 +2,9 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-import { useAuth } from '../../store/auth.ts'
 import { type ApiResponse, type ValidationResult } from '../../utils/api-response.ts'
+
+import { useAuth } from '../../store/auth.ts'
 
 import './password-reset.styles.scss'
 

@@ -3,11 +3,12 @@ import axios from 'axios'
 
 import Avatar from '../../components/avatar/avatar.component'
 
+import type { ApiResponse, ValidationResult } from '../../utils/api-response'
+import type { User } from '../../utils/types'
+
 import { useAuth } from '../../store/auth'
 
 import './profile.styles.scss'
-import type { ApiResponse, ValidationResult } from '../../utils/api-response'
-import type { User } from '../../utils/types'
 
 const ProfileUpdates = {
 	username: { label: 'Username' },
@@ -386,10 +387,6 @@ const ProfileLayout = () => {
 
 	return (
 		<div id='profile-layout' className='main-content'>
-			<header className='header'>
-				<h1>User Profile</h1>
-			</header>
-
 			<section id='profile-form'>
 				<h2>Account Details</h2>
 

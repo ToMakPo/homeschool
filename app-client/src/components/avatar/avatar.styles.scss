@@ -8,4 +8,8 @@
 		font-weight: bold;
 		text-transform: uppercase;
 	}
+
+	&.clickable {
+		cursor: pointer;
+	}
 }

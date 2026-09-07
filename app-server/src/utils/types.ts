@@ -8,6 +8,7 @@ export interface User {
 	username: string
 	firstName: string
 	lastName: string
+	fullName: string
 	preferredName: string | null
 	displayName: string
 	familyId: string | null
