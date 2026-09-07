@@ -7,7 +7,6 @@ import type { User } from '../utils/types'
 interface AuthState {
 	user: User | null
 	accessToken: string | null
-	isInitialized: boolean
 
 	setAuth: (user: User | null, accessToken: string | null) => void
 	clearAuth: () => void
@@ -22,15 +21,14 @@ export const useAuth = create<AuthState>()(
 		(set) => ({
 			user: null,
 			accessToken: null,
-			isInitialized: false,
 
-			setAuth: (user, accessToken) => set({ user, accessToken, isInitialized: true }),
-			clearAuth: () => set({ user: null, accessToken: null, isInitialized: true }),
+			setAuth: (user, accessToken) => set({ user, accessToken }),
+			clearAuth: () => set({ user: null, accessToken: null }),
 
-			setUser: (user) => set({ user, isInitialized: true }),
+			setUser: (user) => set({ user }),
 
 			logout: async () => {
-				set({ user: null, accessToken: null, isInitialized: true })
+				set({ user: null, accessToken: null })
 
 				window.location.href = '/login'
 
@@ -39,8 +37,7 @@ export const useAuth = create<AuthState>()(
 		}),
 		{
 			name: 'homeschool-auth',
-			partialize: (state) => ({ user: state.user, accessToken: state.accessToken }),
-			onRehydrateStorage: () => () => useAuth.setState({ isInitialized: true })
+			partialize: (state) => ({ user: state.user, accessToken: state.accessToken })
 		}
 	)
 )
