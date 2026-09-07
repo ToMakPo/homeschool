@@ -101,10 +101,10 @@ const ProfileLayout = () => {
 		fileInput.click()
 	}
 
-	const avatarGroup = <Avatar user={user!} size={120} onClick={updateAvatar} />
+	const avatarGroup = <Avatar user={user!} size={200} onClick={updateAvatar} />
 
 	const usernameGroup = (
-		<div id='username-info' className='info-group' onClick={() => setUpdateInput('username')}>
+		<div id='username-info' className='info-container' onClick={() => setUpdateInput('username')}>
 			<span className='label'>Username:</span>
 			{updateInput !== 'username' ? (
 				<>
@@ -137,7 +137,7 @@ const ProfileLayout = () => {
 
 					<div className='actions'>
 						<button
-							className=''
+							className='cancel-button'
 							onClick={(e) => {
 								e.stopPropagation()
 								setFormResponse(null)
@@ -148,7 +148,7 @@ const ProfileLayout = () => {
 						</button>
 
 						<button
-							className=''
+							className='save-button'
 							onClick={async (e) => {
 								e.stopPropagation()
 								setFormResponse(null)
@@ -176,7 +176,7 @@ const ProfileLayout = () => {
 	)
 
 	const nameGroup = (
-		<div id='name-info' className='info-group' onClick={() => setUpdateInput('name')}>
+		<div id='name-info' className='info-container' onClick={() => setUpdateInput('name')}>
 			<span className='label'>Name:</span>
 			{updateInput !== 'name' ? (
 				<>
@@ -184,8 +184,7 @@ const ProfileLayout = () => {
 						<span className='loading'>loading...</span>
 					) : (
 						<>
-							<span className='user-value'>{user.firstName ?? ''}</span>
-							<span className='user-value'>{user.lastName ?? ''}</span>
+							<span className='user-value'>{`${user.firstName ?? ''} ${user.lastName ?? ''}`}</span>
 							<span className='user-value'>{user.preferredName ?? ''}</span>
 						</>
 					)}
@@ -245,7 +244,7 @@ const ProfileLayout = () => {
 
 					<div className='actions'>
 						<button
-							className=''
+							className='cancel-button'
 							onClick={(e) => {
 								e.stopPropagation()
 								setFormResponse(null)
@@ -256,7 +255,7 @@ const ProfileLayout = () => {
 						</button>
 
 						<button
-							className=''
+							className='save-button'
 							onClick={async (e) => {
 								e.stopPropagation()
 								setFormResponse(null)
@@ -284,7 +283,7 @@ const ProfileLayout = () => {
 	)
 
 	const passwordGroup = (
-		<div id='password-info' className='info-group' onClick={() => setUpdateInput('password')}>
+		<div id='password-info' className='info-container' onClick={() => setUpdateInput('password')}>
 			<span className='label'>Password:</span>
 			{updateInput !== 'password' ? (
 				<>
@@ -351,7 +350,7 @@ const ProfileLayout = () => {
 
 					<div className='actions'>
 						<button
-							className=''
+							className='cancel-button'
 							onClick={(e) => {
 								e.stopPropagation()
 								setUpdateInput(null)
@@ -361,7 +360,7 @@ const ProfileLayout = () => {
 						</button>
 
 						<button
-							className=''
+							className='save-button'
 							onClick={async (e) => {
 								e.stopPropagation()
 								setFormResponse(null)
@@ -386,10 +385,10 @@ const ProfileLayout = () => {
 	)
 
 	return (
-		<div id='profile-layout'>
-			<div className='header'>
+		<div id='profile-layout' className='main-content'>
+			<header className='header'>
 				<h1>User Profile</h1>
-			</div>
+			</header>
 
 			<section id='profile-form'>
 				<h2>Account Details</h2>
@@ -398,7 +397,6 @@ const ProfileLayout = () => {
 				{usernameGroup}
 				{nameGroup}
 				{passwordGroup}
-				<strong>{updateInput}</strong>
 				{getGeneralMessage()}
 			</section>
 		</div>
