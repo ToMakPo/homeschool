@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 
 import { User } from '../utils/types'
+import pool from '../database/config'
 
 declare global {
 	namespace Express {
@@ -14,6 +15,13 @@ declare global {
 const longTokenExpiration = process.env.JWT_LONG_EXPIRES_IN || '30d'
 const shortTokenExpiration = process.env.JWT_EXPIRES_IN || '1h'
 
+interface Session {
+	id: string
+	userId: string
+	authToken: string
+	expiresAt: Date
+}
+
 /** This middleware authenticates the user by verifying the JWT token provided in the Authorization header.
  *
  * If the token is valid, it attaches the user payload to the request object and calls the next middleware.
@@ -24,7 +32,7 @@ const shortTokenExpiration = process.env.JWT_EXPIRES_IN || '1h'
  * @param res - The Express response object.
  * @param next - The next middleware function.
  */
-export function authenticate(req: Request, res: Response, next: NextFunction): void {
+export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
 	const authHeader = req.headers.authorization
 	if (!authHeader?.startsWith('Bearer ')) {
 		res.status(401).json({ message: 'No token provided' })
@@ -33,12 +41,15 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
 
 	const token = authHeader.slice(7)
 	try {
+		if (await isTokenExpired(token)) throw new Error('Token expired')
+
 		const payload = jwt.verify(token, process.env.JWT_SECRET!) as User
 		req.user = payload
 
 		next()
-	} catch {
-		res.status(401).json({ message: 'Invalid or expired token' })
+	} catch (error) {
+		const message = error instanceof Error ? error.message : 'Invalid or expired token'
+		res.status(401).json({ message })
 	}
 }
 
@@ -62,4 +73,30 @@ export function signToken(user: User, rememberMe = false) {
 	// TODO: This needs to be tested to ensure that the expiration time is in production.
 
 	return { accessToken, expiresAt: localExpiresAt }
+}
+
+/** Checks if a JWT token is expired.
+ *
+ * @param token - The JWT token to check.
+ * @returns True if the token is expired or invalid, false otherwise.
+ */
+async function isTokenExpired(token: string): Promise<boolean> {
+	try {
+		const payload = JSON.parse(atob(token.split('.')[1]))
+
+		const payloadTokenExpired = !payload.exp || payload.exp * 1000 <= Date.now()
+		if (payloadTokenExpired) return true
+
+		// If the token is not expired, check the database session.
+
+		const session = (await pool.query('SELECT * FROM sessions WHERE authToken = ?', [token]).then((result) => result[0] as Session[]))[0]
+		if (!session) return true
+
+		const sessionExpired = !session.expiresAt || session.expiresAt.getTime() <= Date.now()
+		if (sessionExpired) return true
+
+		return false
+	} catch {
+		return true
+	}
 }

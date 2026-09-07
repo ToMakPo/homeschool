@@ -7,9 +7,15 @@ import type { User } from '../utils/types'
 interface AuthState {
 	user: User | null
 	accessToken: string | null
+
 	setAuth: (user: User | null, accessToken: string | null) => void
+	clearAuth: () => void
+
 	setUser: (user: User | null) => void
-	logout: (soft?: boolean) => Promise<void>
+
+	logout: () => Promise<void>
+
+	isInitialized: boolean
 }
 
 export const useAuth = create<AuthState>()(
@@ -17,12 +23,16 @@ export const useAuth = create<AuthState>()(
 		(set: (partial: Partial<AuthState>) => void) => ({
 			user: null,
 			accessToken: null,
-			setAuth: (user: User | null, accessToken: string | null) => set({ user, accessToken }),
-			setUser: (user: User | null) => set({ user }),
-			logout: async (soft = false) => {
-				set({ user: null, accessToken: null })
+			isInitialized: false,
+
+			setAuth: (user: User | null, accessToken: string | null) => set({ user, accessToken, isInitialized: true }),
+			clearAuth: () => set({ user: null, accessToken: null, isInitialized: true }),
+
+			setUser: (user: User | null) => set({ user, isInitialized: true }),
+
+			logout: async () => {
+				set({ user: null, accessToken: null, isInitialized: true })
 				window.location.href = '/login'
-				if (soft) return
 
 				await axios.post('/api/auth/logout')
 			}
