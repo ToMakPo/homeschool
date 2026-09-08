@@ -24,25 +24,13 @@ export const useFamily = create<FamilyState>((set) => ({
 
 	fetchFamily: async () => {
 		try {
-			const response = await apiClient.get<{ family: Family; members: User[] }>('/api/family')
+			const response = await apiClient.get('/api/family')
 			if (!response.passed) throw new Error('Failed to fetch family data')
 
-			// const authToken = useAuth.getState().authToken
+			const { family, members } = response.data
+			if (!family || !members) throw new Error('Incomplete family data')
 
-			// if (!authToken) throw new Error('No authentication token available')
-
-			// const familyResponse = await axios
-			// 	.get('/api/family', { headers: { Authorization: `Bearer ${authToken}` } })
-			// 	.then((response) => response.data as ApiResponse)
-
-			// if (!familyResponse.passed) throw new Error('Failed to fetch family data')
-
-			// const fetchedFamily: Family = familyResponse.data.family
-			// const fetchedMembers: User[] = familyResponse.data.members
-
-			// if (!fetchedFamily || !fetchedMembers) throw new Error('Incomplete family data')
-
-			// set({ family: fetchedFamily, members: fetchedMembers })
+			set({ family, members })
 		} catch (error) {
 			console.error('Error fetching family data:', error)
 			set({ family: null, members: [] })

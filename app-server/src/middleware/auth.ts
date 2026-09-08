@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 
 import { User } from '../utils/types'
 import pool from '../database/config'
+import { error } from 'console'
 
 declare global {
 	namespace Express {
@@ -40,8 +41,10 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 	}
 
 	const token = authHeader.slice(7)
+
 	try {
-		if (await isTokenExpired(token)) throw new Error('Token expired')
+		const tokenExpired = await isTokenExpired(token)
+		if (tokenExpired) throw new Error('Token expired')
 
 		const payload = jwt.verify(token, process.env.JWT_SECRET!) as User
 		req.user = payload
@@ -89,14 +92,15 @@ async function isTokenExpired(token: string): Promise<boolean> {
 
 		// If the token is not expired, check the database session.
 
-		const session = (await pool.query('SELECT * FROM sessions WHERE authToken = ?', [token]).then((result) => result[0] as Session[]))[0]
+		const session = (await pool.query('SELECT * FROM session WHERE authToken = ?', [token]).then((result) => result[0] as Session[]))[0]
 		if (!session) return true
 
 		const sessionExpired = !session.expiresAt || session.expiresAt.getTime() <= Date.now()
 		if (sessionExpired) return true
 
 		return false
-	} catch {
+	} catch (error) {
+		console.error('Error occurred while checking token expiration', error)
 		return true
 	}
 }

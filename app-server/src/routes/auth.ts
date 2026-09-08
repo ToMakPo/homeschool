@@ -279,8 +279,6 @@ router.patch('/password', authenticate, async (req: Request, res: Response) => {
 		const newPassword = newPasswordValidation.value!
 		validations.push(newPasswordValidation)
 
-		console.log('PATCH_AUTH_PASSWORD validations', validations)
-
 		if (validations.some((v) => !v.passed)) return res.json(apiResponse(sender, 401, false, 'Validation failed', { validations }))
 
 		const newHash = await bcrypt.hash(newPassword, 10)
