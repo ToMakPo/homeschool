@@ -25,10 +25,10 @@ function isTokenExpired(token: string): boolean {
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
 	const user = useAuth((state) => state.user)
-	const accessToken = useAuth((state) => state.accessToken)
+	const authToken = useAuth((state) => state.authToken)
 	const clearAuth = useAuth((state) => state.clearAuth)
 
-	const tokenExpired = !accessToken || isTokenExpired(accessToken)
+	const tokenExpired = !authToken || isTokenExpired(authToken)
 
 	useEffect(() => {
 		if (!user || tokenExpired) clearAuth()
@@ -41,10 +41,10 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 function RequireRole({ role, children }: { role: User['role']; children: React.ReactNode }) {
 	const user = useAuth((state) => state.user)
-	const accessToken = useAuth((state) => state.accessToken)
+	const authToken = useAuth((state) => state.authToken)
 	const clearAuth = useAuth((state) => state.clearAuth)
 
-	const tokenExpired = !accessToken || isTokenExpired(accessToken)
+	const tokenExpired = !authToken || isTokenExpired(authToken)
 
 	useEffect(() => {
 		if (!user || tokenExpired) clearAuth()

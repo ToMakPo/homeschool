@@ -5,7 +5,7 @@ import Icon from '../../components/icon/icon.component'
 import { getRoleKey } from '../../utils/globals'
 
 import { useAuth } from '../../store/auth'
-import { navigationItems, NavigationPage, useNavigation } from '../../store/navigation'
+import { navigationItems, useNavigation, type NavigationPage } from '../../store/navigation'
 
 import './nav-panel.styles.scss'
 
@@ -49,10 +49,10 @@ const NavPanel = () => {
 
 	const navigation = (
 		<div id='navigation-items'>
-			{navigationItems
+			{Object.values(navigationItems)
 				.filter(({ roles }) => roles.some((role) => user[getRoleKey(role)]))
-				.map(({ label, icon, navPage }) =>
-					makeNavItem(label, icon, navPage, () => setSelectedPage(navPage), `nav-item--${label.toLowerCase().replace(/\s+/g, '-')}`)
+				.map(({ label, icon, page }) =>
+					makeNavItem(label, icon, page, () => setSelectedPage(page), `nav-item--${label.toLowerCase().replace(/\s+/g, '-')}`)
 				)}
 		</div>
 	)

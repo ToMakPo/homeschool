@@ -1,20 +1,19 @@
 import { create } from 'zustand'
 import type { User } from '../utils/types'
 
-export const NavigationPage = ['dashboard', 'profile'] as const
-export type NavigationPage = (typeof NavigationPage)[number]
-
 type NavigationItem = {
 	label: string
 	icon: string
-	navPage: NavigationPage
+	page: string
 	roles: User['role'][]
 }
 
-export const navigationItems: NavigationItem[] = [
-	{ label: 'Dashboard', icon: 'dashboard_2', navPage: 'dashboard', roles: ['parent', 'student'] },
-	{ label: 'Settings', icon: 'settings', navPage: 'profile', roles: ['parent', 'student'] }
-] as const
+export const navigationItems: Record<string, NavigationItem> = {
+	dashboard: { label: 'Dashboard', icon: 'dashboard_2', page: 'dashboard', roles: ['parent', 'student'] },
+	family: { label: 'Family', icon: 'family_restroom', page: 'family', roles: ['parent', 'student'] },
+	profile: { label: 'Settings', icon: 'settings', page: 'profile', roles: ['parent', 'student'] }
+} as const
+export type NavigationPage = (typeof navigationItems)[keyof typeof navigationItems]['page']
 
 interface NavigationState {
 	selectedPage: NavigationPage
@@ -26,7 +25,7 @@ export const useNavigation = create<NavigationState>((set, get) => ({
 	selectedPage: 'dashboard',
 	setSelectedPage: (page) => set({ selectedPage: page }),
 	getPageTitle: () => {
-		const item = navigationItems.find(({ navPage }) => navPage === get().selectedPage)
+		const item = navigationItems[get().selectedPage]
 		return item?.label
 	}
 }))

@@ -64,15 +64,15 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
  */
 export function signToken(user: User, rememberMe = false) {
 	const expiresIn = rememberMe ? longTokenExpiration : shortTokenExpiration
-	const accessToken = jwt.sign(user, process.env.JWT_SECRET!, { expiresIn } as jwt.SignOptions)
+	const authToken = jwt.sign(user, process.env.JWT_SECRET!, { expiresIn } as jwt.SignOptions)
 
-	const decoded = jwt.decode(accessToken) as { exp: number }
+	const decoded = jwt.decode(authToken) as { exp: number }
 	const expiresAt = new Date(decoded.exp * 1000)
 	const offset = expiresAt.getTimezoneOffset() * 60000
 	const localExpiresAt = new Date(expiresAt.getTime() - offset)
 	// TODO: This needs to be tested to ensure that the expiration time is in production.
 
-	return { accessToken, expiresAt: localExpiresAt }
+	return { authToken, expiresAt: localExpiresAt }
 }
 
 /** Checks if a JWT token is expired.

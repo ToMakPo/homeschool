@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
 
 import { type ApiResponse, type ValidationResult } from '../../utils/api-response.ts'
 import type { User } from '../../utils/types.ts'
+import apiClient from '../../utils/api'
 
 import { useAuth } from '../../store/auth.ts'
 
@@ -52,16 +52,16 @@ const LoginPage = () => {
 					data.rememberMe = 'on' // Convert checkbox value to boolean
 
 					try {
-						const response = await axios.post('/api/auth/login', data).then((res) => res.data as ApiResponse)
+						const response = await apiClient.post('/api/auth/login', data)
 
 						setFormResponse(response)
 
 						if (!response.passed) return
 
 						const user = response.data.user as User
-						const accessToken = response.data.accessToken as string
+						const authToken = response.data.authToken as string
 
-						setAuth(user, accessToken)
+						setAuth(user, authToken)
 
 						navigate(`/${user.isParent ? 'parent' : 'student'}`)
 					} catch (error) {

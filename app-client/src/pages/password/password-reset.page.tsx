@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
 
 import { type ApiResponse, type ValidationResult } from '../../utils/api-response.ts'
+import apiClient from '../../utils/api'
 
 import { useAuth } from '../../store/auth.ts'
 
@@ -49,13 +49,13 @@ const PasswordResetPage = () => {
 					const data = Object.fromEntries(formData.entries())
 
 					try {
-						const response = await axios.post('/api/auth/password-reset', data).then((res) => res.data as ApiResponse)
+						const response = await apiClient.post('/api/auth/password-reset', data)
 
 						setFormResponse(response)
 
-						// const { user, accessToken } = response.data
+						// const { user, authToken } = response.data
 
-						// setAuth(user, accessToken, false)
+						// setAuth(user, authToken, false)
 
 						// navigate(`/${user.role}`)
 					} catch (error) {

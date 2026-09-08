@@ -24,7 +24,7 @@ const router = Router()
  * @param {string} confirmation - The password confirmation for the new user.
  * @param {string} firstName - The first name of the new user.
  * @param {string} lastName - The last name of the new user.
- * @returns {Object} An object containing the newly created user and an access token.
+ * @returns {Object} An object containing the newly created user and an authentication token.
  */
 router.post('/register', async (req: Request, res: Response) => {
 	const sender = 'POST_AUTH_REGISTER'
@@ -77,14 +77,14 @@ router.post('/register', async (req: Request, res: Response) => {
 		const user = (await pool.query('SELECT * FROM view_user WHERE id = ?', [userId]).then(cleanUserRecords))[0]
 		if (!user) return res.json(apiResponse(sender, 501, false, 'Failed to retrieve newly created user.'))
 
-		const { accessToken, expiresAt } = signToken(user)
+		const { authToken, expiresAt } = signToken(user)
 
-		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [uuidv4(), user.id, accessToken, expiresAt])
+		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [uuidv4(), user.id, authToken, expiresAt])
 
 		// TODO: Broadcast to all family members that the user has logged in.
 		// TODO: Once email verification is implemented, send a verification email to the new user.
 
-		return res.json(apiResponse(sender, 200, true, 'New user and new family created.', { user: user, accessToken }))
+		return res.json(apiResponse(sender, 200, true, 'New user and new family created.', { user: user, authToken }))
 	} catch (error) {
 		console.error(error)
 		return res.json(apiResponse(sender, 500, false, 'An error occurred while creating the user.', error))
@@ -102,7 +102,7 @@ router.post('/register', async (req: Request, res: Response) => {
  * @param {string} username - The user's username.
  * @param {string} password - The user's password.
  * @param {boolean} rememberMe - Optional flag to indicate if the user wants to stay logged in for an extended period.
- * @returns {Object} An object containing the authenticated user and access token.
+ * @returns {Object} An object containing the authenticated user and token.
  */
 router.post('/login', async (req: Request, res: Response) => {
 	const sender = 'POST_AUTH_LOGIN'
@@ -145,13 +145,13 @@ router.post('/login', async (req: Request, res: Response) => {
 
 		/// USER PASSED LOGIN VALIDATION | LOG THE USER IN
 
-		const { accessToken, expiresAt } = signToken(user, rememberMe)
+		const { authToken, expiresAt } = signToken(user, rememberMe)
 
-		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [uuidv4(), user.id, accessToken, expiresAt])
+		await pool.query('INSERT INTO session (id, userId, authToken, expiresAt) VALUES (?, ?, ?, ?)', [uuidv4(), user.id, authToken, expiresAt])
 
 		// TODO: Broadcast to all family members that the user has logged in.
 
-		return res.json(apiResponse(sender, 200, true, 'User was logged in.', { user, accessToken }))
+		return res.json(apiResponse(sender, 200, true, 'User was logged in.', { user, authToken }))
 	} catch (error) {
 		console.error(error)
 		return res.json(apiResponse(sender, 500, false, 'An error occurred while logging in.', error))

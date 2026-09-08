@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import axios from 'axios'
 
 import { type ApiResponse, type ValidationResult } from '../../utils/api-response.ts'
+import apiClient from '../../utils/api'
 import type { User } from '../../utils/types.ts'
 
 import { useAuth } from '../../store/auth.ts'
@@ -52,16 +52,16 @@ const SignupPage = () => {
 					data.role = 'owner' // Default role for signup
 
 					try {
-						const response = await axios.post('/api/auth/register', data).then((res) => res.data as ApiResponse)
+						const response = await apiClient.post('/api/auth/register', data)
 
 						setFormResponse(response)
 
 						if (!response.passed) return
 
 						const user = response.data.user as User
-						const accessToken = response.data.accessToken as string
+						const authToken = response.data.authToken as string
 
-						setAuth(user, accessToken)
+						setAuth(user, authToken)
 
 						navigate(`/${user.isParent ? 'parent' : 'student'}`)
 					} catch (error) {

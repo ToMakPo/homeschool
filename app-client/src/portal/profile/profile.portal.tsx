@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import axios from 'axios'
 
 import Avatar from '../../components/avatar/avatar.component'
 
 import type { ApiResponse, ValidationResult } from '../../utils/api-response'
+import apiClient from '../../utils/api'
 import type { User } from '../../utils/types'
 
 import { useAuth } from '../../store/auth'
@@ -20,9 +20,9 @@ type ProfileUpdates = keyof typeof ProfileUpdates
 const updateInputs = ['username', 'firstName', 'lastName', 'preferredName', 'currentPassword', 'newPassword', 'confirmation'] as const
 type UpdateInput = (typeof updateInputs)[number]
 
-const ProfileLayout = () => {
+const ProfilePortal = () => {
 	const user = useAuth((state) => state.user)
-	const token = useAuth((state) => state.accessToken)
+	const token = useAuth((state) => state.authToken)
 	const setUser = useAuth((state) => state.setUser)
 
 	const [updateInput, setUpdateInput] = useState<ProfileUpdates | null>(null)
@@ -88,11 +88,7 @@ const ProfileLayout = () => {
 			formData.append('avatar', file)
 
 			try {
-				const result = await axios
-					.patch('/api/user/avatar', formData, {
-						headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${token}` }
-					})
-					.then((res) => res.data as ApiResponse)
+				const result = await apiClient.patch('/api/user/avatar', formData)
 
 				if (user) setUser({ ...user, avatarUrl: result.data.avatarUrl })
 			} catch (error) {
@@ -154,9 +150,7 @@ const ProfileLayout = () => {
 								e.stopPropagation()
 								setFormResponse(null)
 
-								const response = await axios
-									.patch<ApiResponse>('/api/user', { updates: updateValues }, { headers: { Authorization: `Bearer ${token}` } })
-									.then((res) => res.data)
+								const response = await apiClient.patch<ApiResponse>('/api/user', { updates: updateValues })
 
 								setFormResponse(response)
 
@@ -261,9 +255,7 @@ const ProfileLayout = () => {
 								e.stopPropagation()
 								setFormResponse(null)
 
-								const response = await axios
-									.patch<ApiResponse>('/api/user', { updates: updateValues }, { headers: { Authorization: `Bearer ${token}` } })
-									.then((res) => res.data)
+								const response = await apiClient.patch('/api/user', { updates: updateValues })
 
 								setFormResponse(response)
 
@@ -366,9 +358,7 @@ const ProfileLayout = () => {
 								e.stopPropagation()
 								setFormResponse(null)
 
-								const response = await axios
-									.patch<ApiResponse>('/api/auth/password', { params: updateValues }, { headers: { Authorization: `Bearer ${token}` } })
-									.then((res) => res.data)
+								const response = await apiClient.patch('/api/auth/password', { params: updateValues })
 
 								setFormResponse(response)
 
@@ -400,4 +390,4 @@ const ProfileLayout = () => {
 	)
 }
 
-export default ProfileLayout
+export default ProfilePortal

@@ -4,6 +4,7 @@ import PortalHeader from '../../layout/header/header.layout'
 import NavPanel from '../../layout/nav-panel/nav-panel.layout'
 
 import DashboardPage from '../../portal/dashboard/dashboard.portal'
+import FamilyPage from '../../portal/family/family.portal'
 import ProfilePage from '../../portal/profile/profile.portal'
 
 import { useNavigation } from '../../store/navigation'
@@ -19,6 +20,8 @@ const ParentPortal = () => {
 				return <DashboardPage />
 			case 'profile':
 				return <ProfilePage />
+			case 'family':
+				return <FamilyPage />
 			default:
 				return null
 		}
