@@ -24,7 +24,6 @@ const FamilyPortal = () => {
 	const user = useAuth((state) => state.user)
 	const family = useFamily((state) => state.family)
 	const members = useFamily((state) => state.members)
-	const setMembers = useFamily((state) => state.setMembers)
 	const fetchFamily = useFamily((state) => state.fetchFamily)
 
 	const [createNewMember, setCreateNewMember] = useState<NewMember | null>(null)
