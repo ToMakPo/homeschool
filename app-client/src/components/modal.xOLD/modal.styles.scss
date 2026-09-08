@@ -1,0 +1,23 @@
+.modal-component {
+	position: fixed;
+	inset: 0;
+	z-index: var(--modal-z-index, 1000);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: rgba(0, 0, 0, 0.7);
+	backdrop-filter: blur(1px);
+	pointer-events: auto;
+
+	.modal-content {
+		background-color: #fff;
+		border-radius: 8px;
+		padding: 16px;
+		max-width: 90%;
+		max-height: 90%;
+		overflow: auto;
+
+		position: relative;
+		box-shadow: 2px 4px 6px 2px rgba(0, 0, 0, 0.5);
+	}
+}

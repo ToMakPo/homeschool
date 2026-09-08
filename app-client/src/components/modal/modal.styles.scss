@@ -1,23 +1,160 @@
 .modal-component {
-	position: fixed;
-	inset: 0;
-	z-index: var(--modal-z-index, 1000);
 	display: flex;
-	justify-content: center;
-	align-items: center;
-	background-color: rgba(0, 0, 0, 0.7);
-	backdrop-filter: blur(1px);
-	pointer-events: auto;
+	flex-direction: column;
 
-	.modal-content {
-		background-color: #fff;
-		border-radius: 8px;
-		padding: 16px;
-		max-width: 90%;
-		max-height: 90%;
-		overflow: auto;
+	position: relative;
+	border: 2px solid var(--color--outline-variant);
+	background: var(--color--surface-container);
+	border-radius: 1rem;
+	padding: 1.25rem;
+	z-index: 9999;
+	overflow: auto;
+	scroll-behavior: smooth;
+	/* Cuts off the square ends of both scroll bars at the 4 corners */
+	clip-path: inset(0 round 1rem); 
 
-		position: relative;
-		box-shadow: 2px 4px 6px 2px rgba(0, 0, 0, 0.5);
+
+	/// ANIMATION EFFECTS ///
+	/// The modal will fade and slide in when opened, and fade and slide out 
+	/// when closing. The backdrop will also fade in and out accordingly.
+	opacity: 0; // Start fully transparent.
+	transform: translateY(-40px); // Start slightly above the opened position.
+	pointer-events: none; // Disable interactions until opened.
+	transition:
+		opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+		transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+	&::backdrop {
+		background: var(--color--backdrop);
+		opacity: 0; // Start fully transparent.
+		transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	&.backdrop-click {
+		&::backdrop {
+			// A custom cursor indicating that clicking the backdrop will close the modal.
+			cursor: url('data:image/svg+xml;utf8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-minimize"%3E%3Cpath stroke="none" d="M0 0h24v24H0z" fill="none"/%3E%3Cpath d="M15 19v-2a2 2 0 0 1 2 -2h2"/%3E%3Cpath d="M15 5v2a2 2 0 0 0 2 2h2"/%3E%3Cpath d="M5 15h2a2 2 0 0 1 2 2v2"/%3E%3Cpath d="M5 9h2a2 2 0 0 0 2 -2v-2"/%3E%3C/svg%3E') 12 12, auto;
+		}
+	}
+
+	&.opened {
+		opacity: 1; // Fully visible.
+		transform: translateY(0); // Move to the opened position.
+		pointer-events: auto; // Enable interactions.
+
+		&::backdrop {
+			opacity: 1; // Fully visible backdrop.
+		}
+	}
+
+	&.closing {
+		opacity: 0; // End fully transparent.
+		transform: translateY(40px); // End slightly below the opened position.
+		pointer-events: none; // Disable interactions.
+
+		&::backdrop {
+			opacity: 0; // End fully transparent backdrop.
+		}
+	}
+
+	/// MODAL CLOSE BUTTON ///
+	/// The close button is positioned at the top-right corner of the modal.
+	/// It scales up slightly on hover for better visibility.
+	.modal-close-button {
+		position: absolute;
+		top: 0.35rem;
+		right: 0.35rem;
+
+		--show: 0.8; // The button will be displayed at slightly smaller size.
+		filter: grayscale(100%); // Make the button appear in grayscale.
+		opacity: 0.5; // Start with reduced opacity to make it less prominent.
+
+		&:hover {
+			background: none !important;
+			--show: 1; // On hover, the button will scale up to its full size.
+			filter: grayscale(0%); // Remove grayscale on hover.
+			opacity: 1; // Make the button fully opaque on hover.
+		}
+	}
+
+	/// SIZE OPTIONS ///
+	/// The width will be set based on the size prop, and the height will adjust 
+	/// automatically based on the content. All sizes are responsive and will not 
+	/// exceed the viewport dimensions. If the content exceeds the available space, 
+	/// the modal will become scrollable.
+	max-width: calc(100vw - 2rem);
+	max-height: calc(100vh - 2rem);
+	overflow: auto;
+
+	&.size-fit-content {
+		width: fit-content;
+	}
+
+	&.size-extra-small {
+		width: 20rem;
+	}
+
+	&.size-small {
+		width: 30rem;
+	}
+
+	&.size-medium {
+		width: 60rem;
+	}
+
+	&.size-large {
+		width: 90rem;
+	}
+
+	&.size-extra-large {
+		width: 150rem;
+	}
+
+	&.size-full-screen {
+		width: 100vw;
+		height: 100vh;
+	}
+
+	/// ACTION BUTTONS ///
+	.action-buttons {
+		display: flex;
+		gap: 0.5rem;
+		justify-content: flex-end;
+		margin-top: 0.75rem;
+
+		.action-button {
+			padding: 0.35rem 0.85rem;
+			border: none;
+			border-radius: 0.35rem;
+			font-weight: 600;
+			font-size: 0.875rem;
+			cursor: pointer;
+
+			--bgc: var(--color--surface-container-high);
+
+			&.confirm-button {
+				--bgc: var(--color--primary);
+			}
+
+			&.cancel-button {
+				--bgc: var(--color--surface-container-highest);
+			}
+
+			&.reset-button {
+				--bgc: var(--color--surface-container-high);
+			}
+
+			&:hover:not(:disabled) {
+				background-color: color-mix(in hsl, contrast-color(var(--bgc)) 5%, var(--bgc));
+			}
+
+			&:disabled {
+				--bgc: var(--color--surface-container-highest);
+				cursor: not-allowed;
+			}
+
+			background-color: var(--bgc);
+			color: color-mix(in hsl, contrast-color(var(--bgc)) 80%, var(--bgc));
+		}
 	}
 }

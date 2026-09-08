@@ -1,0 +1,195 @@
+.icon-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	position: relative;
+
+	.search-filter {
+		display: flex;
+		gap: 0.5rem;
+		position: relative;
+
+		input {
+			flex: 1;
+			padding: 0.5rem;
+			border: 1px solid currentColor;
+			border-radius: 0.25rem;
+			background-color: var(--color--surface-container-high);
+			color: var(--color--on-surface);
+		}
+
+		$iconSize: 1.5rem;
+
+		.search-icon,
+		.clear-icon {
+			position: absolute;
+			top: 50%;
+			right: 0.75rem;
+			transform: translateY(-50%);
+			width: $iconSize;
+			height: $iconSize;
+		}
+
+		.clear-icon {
+			color: var(--color--error);
+			padding: calc($iconSize / 2);
+			pointer-events: none;
+			opacity: 0.75;
+		}
+
+		// If the filter input has text, show the clear icon
+		&:has(input:not(:placeholder-shown)):is(:hover, :focus-within) {
+			.search-icon {
+				padding: calc($iconSize / 2);
+			}
+
+			.clear-icon {
+				padding: 2px;
+				pointer-events: auto;
+
+				&:hover {
+					padding: 0px;
+					opacity: 1;
+				}
+			}
+		}
+	}
+
+	.icon-list {
+		border: 1px solid currentColor;
+		border-radius: 0.5rem;
+	}
+
+	.icons-grid {
+		display: grid;
+		grid-template-rows: min-content;
+		grid-template-columns: min-content;
+
+		.icon-component {
+			--fg-color: hsl(from var(--color--on-surface) h s calc(l * 0.75));
+			--bg-color: inherit;
+
+			&:active,
+			&.selected {
+				--fg-color: var(--color--on-primary-container);
+				--bg-color: var(--color--primary-container);
+			}
+
+			color: var(--fg-color);
+			background-color: var(--bg-color) !important;
+
+			&:hover {
+				color: hsl(from var(--fg-color) h s calc(l * 1.2));
+				border-color: hsl(from var(--fg-color) h s l / 0.8);
+			}
+		}
+	}
+
+	.pagination {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		position: relative;
+
+		.page-numbers {
+			text-align: center;
+			width: 120px;
+			height: 30px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.page-number-input {
+			text-align: center;
+			padding: 0.25rem;
+			border: 1px solid currentColor;
+			border-radius: 0.25rem;
+			background-color: var(--color--surface-container-high);
+			color: var(--color--on-surface);
+		}
+
+		.go-to-selected-icon {
+			position: absolute;
+			right: 0;
+		}
+	}
+
+	.selected-icon-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+
+		position: absolute;
+		left: 0.25rem;
+		bottom: 0.25rem;
+
+		.info-text {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			gap: 0.25rem;
+
+			background-color: var(--color--surface-container-high);
+			padding: 0.35rem 0.75rem;
+			border-radius: 0.5rem;
+			border: 1px solid currentColor;
+			font-size: 1rem;
+
+			.info {
+				display: flex;
+				gap: 0.25rem;
+				align-items: center;
+				user-select: none;
+				position: relative;
+				cursor: pointer;
+
+				$iconSize: 0.875rem;
+				padding-right: $iconSize;
+
+				.copy-icon,
+				.copied-icon {
+					width: $iconSize;
+					height: $iconSize;
+					padding: calc($iconSize / 2);
+					pointer-events: none;
+					position: absolute;
+					right: -0.35rem;
+				}
+
+				&:hover:not(:active) .copy-icon {
+					padding: 0rem;
+				}
+
+				.copied-icon {
+					color: var(--color--secondary);
+				}
+
+				&:active .copied-icon {
+					padding: 0rem;
+				}
+			}
+		}
+
+		.selected-icon-info-icon {
+			opacity: 0.5;
+			padding: 1px;
+			cursor: pointer;
+
+			&:hover {
+				opacity: 1;
+				padding: 0px;
+			}
+		}
+
+		&:not(:hover) {
+			.info-text {
+				display: none;
+			}
+
+			.selected-icon-info-icon {
+				display: initial;
+			}
+		}
+	}
+}

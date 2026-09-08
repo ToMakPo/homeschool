@@ -1,0 +1,253 @@
+.carousel-component {
+	display: grid;
+
+	gap: 1rem;
+
+	grid-template-columns: auto 1fr auto;
+	grid-template-rows: 1fr auto;
+	grid-template-areas:
+		'lcv frm rcv'
+		'pgn pgn pgn';
+
+	outline-offset: 2px;
+
+	&:focus-visible {
+		outline: none;
+
+		.carousel-frame-container {
+			border-color: var(--color--outline);
+		}
+	}
+
+	/// FRAMES ///
+	.carousel-frame-container {
+		grid-area: frm;
+		display: flex;
+		overflow: hidden;
+		border-radius: 0.5rem;
+		border: 3px solid var(--color--outline-variant);
+
+		--animation-duration: 0.4s;
+		transition: transform var(--animation-duration) cubic-bezier(0.25, 1, 0.5, 1);
+
+		container-type: inline-size;
+
+		.carousel-frame-slider {
+			--index: 0;
+
+			display: flex;
+
+			transition: transform var(--animation-duration) cubic-bezier(0.25, 1, 0.5, 1);
+			transform: translateX(calc(var(--index) * -100cqw));
+
+			.carousel-frame {
+				flex: 0 0 100cqw;
+				display: flex;
+				padding: 1rem;
+				overflow: auto;
+				width: 100cqw;
+				opacity: 0;
+				transition: opacity 0.8s;
+
+				&.active {
+					opacity: 1;
+				}
+
+				&.empty {
+					justify-content: center;
+					align-items: center;
+					font-size: 1.25rem;
+					font-weight: 500;
+					color: var(--color--on-surface-variant);
+				}
+			}
+		}
+
+		&.bounce-left {
+			.carousel-frame-slider {
+				animation: --bounceLeft var(--animation-duration);
+			}
+		}
+
+		&.bounce-right {
+			.carousel-frame-slider {
+				animation: --bounceRight var(--animation-duration);
+			}
+		}
+
+		&.shake {
+			.carousel-frame-slider {
+				animation: --shake var(--animation-duration);
+			}
+		}
+
+		@keyframes --bounceRight {
+			0% {
+				transform: translateX(calc(var(--index) * -100cqw));
+			}
+
+			50% {
+				transform: translateX(calc(var(--index) * -100cqw - 3.0rem));
+			}
+
+			75% {
+				transform: translateX(calc(var(--index) * -100cqw + 1.5rem));
+			}
+
+			88% {
+				transform: translateX(calc(var(--index) * -100cqw - 0.72rem));
+			}
+
+			94% {
+				transform: translateX(calc(var(--index) * -100cqw + 0.36rem));
+			}
+
+			97% {
+				transform: translateX(calc(var(--index) * -100cqw - 0.18rem));
+			}
+
+			99% {
+				transform: translateX(calc(var(--index) * -100cqw + 0.06rem));
+			}
+
+			100% {
+				transform: translateX(calc(var(--index) * -100cqw));
+			}
+		}
+
+		@keyframes --bounceLeft {
+			0% {
+				transform: translateX(calc(var(--index) * -100cqw));
+			}
+
+			50% {
+				transform: translateX(calc(var(--index) * -100cqw + 3.0rem));
+			}
+
+			75% {
+				transform: translateX(calc(var(--index) * -100cqw - 1.5rem));
+			}
+
+			88% {
+				transform: translateX(calc(var(--index) * -100cqw + 0.72rem));
+			}
+
+			94% {
+				transform: translateX(calc(var(--index) * -100cqw - 0.36rem));
+			}
+
+			97% {
+				transform: translateX(calc(var(--index) * -100cqw + 0.18rem));
+			}
+
+			99% {
+				transform: translateX(calc(var(--index) * -100cqw - 0.06rem));
+			}
+
+			100% {
+				transform: translateX(calc(var(--index) * -100cqw));
+			}
+		}
+
+		@keyframes --shake {
+			0% {
+				transform: translateX(calc(var(--index) * -100cqw));
+			}
+
+			20% {
+				transform: translateX(calc(var(--index) * -100cqw - 0.5rem));
+			}
+
+			40% {
+				transform: translateX(calc(var(--index) * -100cqw + 0.5rem));
+			}
+
+			60% {
+				transform: translateX(calc(var(--index) * -100cqw - 0.5rem));
+			}
+
+			80% {
+				transform: translateX(calc(var(--index) * -100cqw + 0.5rem));
+			}
+
+			100% {
+				transform: translateX(calc(var(--index) * -100cqw));
+			}
+		}
+	}
+
+	/// ARROW BUTTONS ///
+	.carousel-prev-arrow {
+		grid-area: lcv;
+	}
+
+	.carousel-next-arrow {
+		grid-area: rcv;
+		// background-color: green;
+	}
+
+	.carousel-arrow {
+		display: flex;
+		padding: 1rem;
+		justify-content: center;
+		align-items: center;
+		border-radius: 0.25rem;
+		transition: 0.35s;
+		cursor: pointer;
+
+		&:hover {
+			background-color: var(--color--surface-container-high);
+		}
+
+		&.disabled {
+			filter: grayscale(100%) brightness(0.5);
+			cursor: not-allowed;
+		}
+	}
+
+	/// PAGINATION DOTS ///
+	.carousel-dots {
+		grid-area: pgn;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 0.5rem;
+
+		.carousel-dot {
+			background-color: currentColor;
+			$size: 1rem;
+			width: $size;
+			height: $size;
+			aspect-ratio: 1/1;
+			border-radius: 50%;
+			transition: 0.35s;
+			opacity: 0.5;
+			cursor: pointer;
+
+			&:hover {
+				opacity: 1;
+			}
+
+			&.active {
+				opacity: 1;
+				background-color: var(--color--primary);
+			}
+		}
+	}
+
+	@media (max-width: 900px) {
+		grid-template-areas:
+			'frm frm frm'
+			'lcv pgn rcv';
+
+		.carousel-arrow {
+			aspect-ratio: 1/1;
+			border-radius: 50%;
+			padding: 0.5rem;
+
+			.chevron-icon {
+				--ht: 1rem !important;
+			}
+		}
+	}
+}

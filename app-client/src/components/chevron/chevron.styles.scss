@@ -1,0 +1,80 @@
+.chevron-icon {
+	// background-color: red;
+	display: block;
+	position: relative;
+
+	--stroke-width: 2px;
+	--stroke-color: currentColor;
+
+	--is-right: 0;
+	--is-left: 0;
+	--is-down: 0;
+	--is-up: 0;
+
+	&[data-dir='right'] {
+		--is-right: 1;
+		--wd: 0.5rem;
+		--ht: 1.0rem;
+	}
+
+	&[data-dir='down'] {
+		--is-down: 1;
+		--wd: 1.0rem;
+		--ht: 0.5rem;
+	}
+
+	&[data-dir='left'] {
+		--is-left: 1;
+		--wd: 0.5rem;
+		--ht: 1.0rem;
+	}
+
+	&[data-dir='up'] {
+		--is-up: 1;
+		--wd: 1.0rem;
+		--ht: 0.5rem;
+	}
+
+	--is-ud: calc(var(--is-up) + var(--is-down));
+	--is-lr: calc(var(--is-left) + var(--is-right));
+
+	width: var(--wd);
+	height: var(--ht);
+
+	// Section weights and heights based on orientation
+	--sw: calc(((var(--wd) + var(--stroke-width) * 0) * var(--is-lr)) + ((var(--wd) + var(--stroke-width) * 0) * 0.5 * var(--is-ud)));
+	--sh: calc(((var(--ht) + var(--stroke-width) * 0) * 0.5 * var(--is-lr)) + ((var(--ht) + var(--stroke-width) * 0) * var(--is-ud)));
+
+	--len: hypot(var(--sw), var(--sh));
+	--ang1: atan2(var(--sh) - var(--stroke-width), var(--sw) - var(--stroke-width));
+	--ang2: atan2(var(--sw) - var(--stroke-width), var(--sh) - var(--stroke-width));
+
+	&::before,
+	&::after {
+		content: '';
+		display: block;
+		position: absolute;
+		width: var(--len);
+		height: var(--stroke-width);
+		border-radius: 100vw;
+		background-color: var(--stroke-color);
+
+		top: calc((var(--is-lr) * (50% - var(--stroke-width) * 0.5)) + (var(--is-down) * (100% - var(--stroke-width))) + (var(--is-up) * 0%));
+		left: calc((var(--is-right) * (100% - var(--stroke-width))) + (var(--is-ud) * (50% - var(--stroke-width) * 0.5)) + (var(--is-left) * 0%));
+
+		transform-origin: calc((var(--stroke-width) * 0.5)) center;
+
+	}
+
+	&::before {
+		rotate: calc((var(--is-right) * (var(--ang1) + 180deg)) + (var(--is-left) * (var(--ang1))) + (var(--is-up) * (var(--ang1))) + (var(--is-down) * (var(--ang1) + 180deg)));
+	}
+
+	&::after {
+		rotate: calc((var(--is-right) * (var(--ang2) + 90deg)) + (var(--is-left) * (var(--ang2) - 90deg)) + (var(--is-up) * (var(--ang2) + 90deg)) + (var(--is-down) * (var(--ang2) - 90deg)));
+	}
+
+	&.clickable {
+		cursor: pointer;
+	}
+}
