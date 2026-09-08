@@ -1,0 +1,122 @@
+#family-portal {
+	h2 {
+		align-self: center;
+
+		display: flex;
+		gap: 0.5rem;
+
+		cursor: pointer;
+
+		&::before, &::after {
+			content: '꣼';
+			display: inline-block;
+			user-select: none;
+		}
+
+		&::before {
+			transform: scaleY(-1);
+		}
+		&::after {
+			transform: scale(-1);
+		}
+	}
+
+	#members-list {
+		h3 {
+			margin-bottom: 0.5rem;
+		}
+
+		ul {
+			list-style: none;
+			padding: 0;
+
+			li {
+				display: flex;
+				align-items: center;
+				justify-content: flex-start;
+				gap: 0.5rem;
+				padding: 0.5rem 0;
+		}
+	}
+
+	.member-pills {
+		display: flex;
+		gap: 0.25rem;
+		flex-wrap: wrap;
+		margin-top: 0.5rem;
+
+		.pill {
+			user-select: none;
+			font-weight: 500;
+			font-size: 0.75rem;
+			background-color: #eee;
+			border-radius: 100vw;
+			padding: 0.35rem 0.5rem;
+			text-box-trim: trim-both;
+			text-box-edge: ex alphabetic;
+			--pill-color: #fff;
+
+			&.pill-me {
+				--pill-color: #885876;
+			}
+			&.pill-student {
+				--pill-color: #4c087a;
+			}
+			&.pill-parent {
+				--pill-color: #08507a;
+			}
+			&.pill-admin {
+				--pill-color: #087a41;
+			}
+			&.pill-owner {
+				--pill-color: #7a6f08;
+			}
+			color: contrast-color(var(--pill-color));
+			background-color: var(--pill-color);
+		}
+	}
+}
+
+	#new-member-role {
+		display: flex;
+		background-color: var(--color-primary, #c8d8f8);;
+		width: fit-content;
+		border-radius: 100vw;
+		overflow: hidden;
+		font-size: 0.75rem;
+		cursor: pointer;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid currentColor;
+
+		span {
+			padding: 0.25rem 0.5rem;
+			background-color: inherit;
+			user-select: none;
+
+			&:first-child {
+				border-right: 1px solid currentColor;
+				padding-left: 0.75rem;
+				border-radius: 100vw 0 0 100vw;
+			}
+			&:last-child {
+				padding-right: 0.75rem;
+				border-radius: 0 100vw 100vw 0;
+			}
+
+			&:hover {
+				filter: brightness(0.9);
+			}
+
+			&:is(:focus, :focus-visible) {
+				outline: none;
+				box-shadow: inset 0 0 5px var(--color-primary, #143983);
+			}	
+
+			&.active {
+				font-weight: 500;
+				background-color: #8898b8;
+			}
+		}
+	}
+}

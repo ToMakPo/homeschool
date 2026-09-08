@@ -62,76 +62,87 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
  *
  * @route PATCH /api/user/
  * @middleware authenticate
+ * @param {string} [targetId] - The ID of the target user to update. Defaults to the current user.
  * @param {Object} updates - The fields to update.
  * @returns {User} The updated user's information.
  */
 router.patch('/', authenticate, async (req: Request, res: Response) => {
 	const sender = 'PATCH_USER_SELF'
 
-	const user = req.user
-	if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
-
-	const validations: ValidationResult<any>[] = []
-	const updates: Partial<User> = req.body.updates
-
-	const newValues: Partial<Omit<User, 'id' | 'avatarUrl'>> = {}
-
-	if (updates.username !== undefined) {
-		const usernameValidation = await validateUsername(updates.username, user.id)
-		newValues.username = usernameValidation.value!
-		validations.push(usernameValidation)
-	}
-
-	if (updates.firstName !== undefined) {
-		const firstNameValidation = await validateName(updates.firstName, 'First name', false)
-		newValues.firstName = firstNameValidation.value!
-		validations.push(firstNameValidation)
-	}
-
-	if (updates.lastName !== undefined) {
-		const lastNameValidation = await validateName(updates.lastName, 'Last name', false)
-		newValues.lastName = lastNameValidation.value!
-		validations.push(lastNameValidation)
-	}
-
-	if (updates.preferredName !== undefined) {
-		const preferredNameValidation = await validateName(updates.preferredName, 'Preferred name', true)
-		newValues.preferredName = preferredNameValidation.value!
-		validations.push(preferredNameValidation)
-	}
-
-	if (updates.role !== undefined) {
-		const roleValidation = await validateEnum<User['role']>(updates.role, ['admin', 'parent', 'student'], 'Role')
-		newValues.role = roleValidation.value!
-		validations.push(roleValidation)
-	}
-
-	if (updates.isAdmin !== undefined) {
-		const isAdminValidation = await validateBoolean(updates.isAdmin, 'Is Admin')
-		newValues.isAdmin = isAdminValidation.value!
-		validations.push(isAdminValidation)
-	}
-
-	if (updates.passwordReset !== undefined) {
-		const passwordResetValidation = await validateBoolean(updates.passwordReset, 'Password Reset')
-		newValues.passwordReset = passwordResetValidation.value!
-		validations.push(passwordResetValidation)
-	}
-
-	if (validations.some((v) => !v.passed)) return res.json(apiResponse(sender, 401, false, 'Validation failed', { validations }))
-
-	if (Object.keys(newValues).length === 0) return res.json(apiResponse(sender, 402, false, 'No valid fields to update'))
-
-	const setClause = Object.keys(newValues)
-		.map((key) => `${key} = ?`)
-		.join(', ')
-	const values = Object.values(newValues)
-
 	try {
-		await pool.execute(`UPDATE user SET ${setClause} WHERE id = ?`, [...values, user.id])
-		const updatedUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [user.id]).then(cleanUserRecords))[0]
+		const user = req.user
+		if (!user) return res.json(apiResponse(sender, 400, false, 'You are not authenticated.'))
 
-		// TODO: Broadcast to all family members that the user has updated their information.
+		const targetId = req.body.targetId ?? user.id
+		const target =
+			targetId === user.id ? user : (await pool.query('SELECT * FROM view_user WHERE id = ?', [targetId]).then(cleanUserRecords))[0]
+		if (!target) return res.json(apiResponse(sender, 401, false, 'Target user not found.'))
+
+		if (targetId !== user.id) {
+			if (!user.isOwner && target.isParent) return res.json(apiResponse(sender, 402, false, 'Only owners can update parents.'))
+			if (!user.isParent && target.isStudent) return res.json(apiResponse(sender, 403, false, 'Only parents can update students.'))
+		}
+
+		const validations: ValidationResult<any>[] = []
+		const updates: Partial<User> = req.body.updates
+
+		const newValues: Partial<Omit<User, 'id' | 'avatarUrl'>> = {}
+
+		if (updates.username !== undefined) {
+			const usernameValidation = await validateUsername(updates.username, target.id)
+			newValues.username = usernameValidation.value!
+			validations.push(usernameValidation)
+		}
+
+		if (updates.firstName !== undefined) {
+			const firstNameValidation = await validateName(updates.firstName, 'First name', false)
+			newValues.firstName = firstNameValidation.value!
+			validations.push(firstNameValidation)
+		}
+
+		if (updates.lastName !== undefined) {
+			const lastNameValidation = await validateName(updates.lastName, 'Last name', false)
+			newValues.lastName = lastNameValidation.value!
+			validations.push(lastNameValidation)
+		}
+
+		if (updates.preferredName !== undefined) {
+			const preferredNameValidation = await validateName(updates.preferredName, 'Preferred name', true)
+			newValues.preferredName = preferredNameValidation.value!
+			validations.push(preferredNameValidation)
+		}
+
+		if (updates.role !== undefined) {
+			const roleValidation = await validateEnum<User['role']>(updates.role, ['admin', 'parent', 'student'], 'Role')
+			newValues.role = roleValidation.value!
+			validations.push(roleValidation)
+		}
+
+		if (updates.isAdmin !== undefined) {
+			const isAdminValidation = await validateBoolean(updates.isAdmin, 'Is Admin')
+			newValues.isAdmin = isAdminValidation.value!
+			validations.push(isAdminValidation)
+		}
+
+		if (updates.passwordReset !== undefined) {
+			const passwordResetValidation = await validateBoolean(updates.passwordReset, 'Password Reset')
+			newValues.passwordReset = passwordResetValidation.value!
+			validations.push(passwordResetValidation)
+		}
+
+		if (validations.some((v) => !v.passed)) return res.json(apiResponse(sender, 404, false, 'Validation failed', { validations }))
+
+		if (Object.keys(newValues).length === 0) return res.json(apiResponse(sender, 405, false, 'No valid fields to update'))
+
+		const setClause = Object.keys(newValues)
+			.map((key) => `${key} = ?`)
+			.join(', ')
+		const values = Object.values(newValues)
+
+		await pool.execute(`UPDATE user SET ${setClause} WHERE id = ?`, [...values, target.id])
+		const updatedUser = (await pool.query('SELECT * FROM view_user WHERE id = ?', [target.id]).then(cleanUserRecords))[0]
+
+		// TODO: Broadcast to all family members that the target has updated their information.
 
 		return res.json(apiResponse(sender, 200, true, 'User updated successfully.', updatedUser))
 	} catch (err) {

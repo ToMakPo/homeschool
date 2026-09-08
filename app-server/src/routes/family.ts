@@ -118,8 +118,8 @@ router.delete('/', authenticate, async (req: Request, res: Response) => {
 ////////////////////////////
 /// CREATE FAMILY MEMBER ///
 ////////////////////////////
-// #region PUT /creata
-router.put('/create', authenticate, async (req: Request, res: Response) => {
+// #region POST /create
+router.post('/create', authenticate, async (req: Request, res: Response) => {
 	const sender = 'CREATE_FAMILY_MEMBER'
 
 	const user = req.user

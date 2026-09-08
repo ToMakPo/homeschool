@@ -22,7 +22,6 @@ type UpdateInput = (typeof updateInputs)[number]
 
 const ProfilePortal = () => {
 	const user = useAuth((state) => state.user)
-	const token = useAuth((state) => state.authToken)
 	const setUser = useAuth((state) => state.setUser)
 
 	const [updateInput, setUpdateInput] = useState<ProfileUpdates | null>(null)
@@ -150,7 +149,7 @@ const ProfilePortal = () => {
 								e.stopPropagation()
 								setFormResponse(null)
 
-								const response = await apiClient.patch<ApiResponse>('/api/user', { updates: updateValues })
+								const response = await apiClient.patch('/api/user', { updates: updateValues })
 
 								setFormResponse(response)
 
