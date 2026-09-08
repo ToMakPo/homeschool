@@ -8,7 +8,7 @@ import './header.styles.scss'
 const PortalHeader = () => {
 	const user = useAuth((state) => state.user)!
 	const getPageTitle = useNavigation((state) => state.getPageTitle)
-	const setSelectedLayout = useNavigation((state) => state.setSelectedPage)
+	const setSelectedPage = useNavigation((state) => state.setSelectedPage)
 
 	return (
 		<header id='portal-header'>
@@ -16,7 +16,7 @@ const PortalHeader = () => {
 
 			<div id='user-actions'>
 				{/* TODO: Add notifications */}
-				<Avatar user={user} onClick={() => setSelectedLayout('profile')} />
+				<Avatar user={user} onClick={() => setSelectedPage('profile')} />
 			</div>
 		</header>
 	)

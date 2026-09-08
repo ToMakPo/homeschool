@@ -12,10 +12,10 @@ import { useNavigation } from '../../store/navigation'
 import './portal.styles.scss'
 
 const ParentPortal = () => {
-	const selectedLayout = useNavigation((state) => state.selectedPage)
+	const setSelectedPage = useNavigation((state) => state.selectedPage)
 
 	const mainLayout = useMemo(() => {
-		switch (selectedLayout) {
+		switch (setSelectedPage) {
 			case 'dashboard':
 				return <DashboardPage />
 			case 'profile':
@@ -25,7 +25,7 @@ const ParentPortal = () => {
 			default:
 				return null
 		}
-	}, [selectedLayout])
+	}, [setSelectedPage])
 
 	return (
 		<div id='parent-portal'>
