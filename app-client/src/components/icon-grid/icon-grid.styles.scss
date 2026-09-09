@@ -14,8 +14,8 @@
 			padding: 0.5rem;
 			border: 1px solid currentColor;
 			border-radius: 0.25rem;
-			background-color: var(--color--surface-container-high);
-			color: var(--color--on-surface);
+			background-color: var(--color-bg, red);
+			color: var(--color-neutral, red);
 		}
 
 		$iconSize: 1.5rem;
@@ -31,7 +31,7 @@
 		}
 
 		.clear-icon {
-			color: var(--color--error);
+			color: var(--color-danger, firebrick);
 			padding: calc($iconSize / 2);
 			pointer-events: none;
 			opacity: 0.75;
@@ -66,13 +66,13 @@
 		grid-template-columns: min-content;
 
 		.icon-component {
-			--fg-color: hsl(from var(--color--on-surface) h s calc(l * 0.75));
+			--fg-color: hsl(from var(--color-neutral, #586888) h s calc(l * 0.75));
 			--bg-color: inherit;
 
 			&:active,
 			&.selected {
-				--fg-color: var(--color--on-primary-container);
-				--bg-color: var(--color--primary-container);
+				--fg-color: var(--color-primary-fg, #c8d8f8);
+				--bg-color: var(--color-primary, #586888);
 			}
 
 			color: var(--fg-color);
@@ -105,8 +105,8 @@
 			padding: 0.25rem;
 			border: 1px solid currentColor;
 			border-radius: 0.25rem;
-			background-color: var(--color--surface-container-high);
-			color: var(--color--on-surface);
+			background-color: var(--color-bg, red);
+			color: var(--color-neutral, red);
 		}
 
 		.go-to-selected-icon {
@@ -130,7 +130,7 @@
 			justify-content: center;
 			gap: 0.25rem;
 
-			background-color: var(--color--surface-container-high);
+			background-color: var(--color-bg, red);
 			padding: 0.35rem 0.75rem;
 			border-radius: 0.5rem;
 			border: 1px solid currentColor;
@@ -162,7 +162,7 @@
 				}
 
 				.copied-icon {
-					color: var(--color--secondary);
+					color: var(--color-shadow, redsecondary);
 				}
 
 				&:active .copied-icon {

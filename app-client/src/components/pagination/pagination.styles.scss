@@ -29,14 +29,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 1px solid var(--color--outline);
+            border: 1px solid var(--color-shadow, redoutline);
             border-radius: 0.25rem;
             cursor: pointer;
 
             &.active {
-                background-color: var(--color--primary);
-                color: var(--color--on-primary);
-                border-color: var(--color--primary);
+                background-color: var(--color-primary, #586888);
+                color: var(--color-primary-fg, #c8d8f8;
+                border-color: var(--color-primary, #586888);
                 font-weight: 600;
             }
         }
@@ -59,7 +59,7 @@
             width: 100%;
             height: $btnSize;
             text-align: center;
-            border: 1px solid var(--color--outline);
+            border: 1px solid var(--color-shadow, redoutline);
             border-radius: 0.25rem;
             position: absolute;
             inset: 0;

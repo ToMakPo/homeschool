@@ -20,14 +20,14 @@
 		border-radius: var(--radius);
 		user-select: none;
 		gap: 0.75rem;
-		--bg: var(--color--surface-container-highest);
+		--bg: var(--color-bg, red);
 		background-color: var(--bg);
 		transition: 0.35s;
 		cursor: pointer;
 
 		anchor-name: --dropdown;
 
-		--glow: var(--color--primary);
+		--glow: var(--color-primary, #586888);
 
 		&.open {
 			box-shadow: 0 0 0.5rem 0.125rem var(--glow) inset;
@@ -94,7 +94,7 @@
 
 			&:hover {
 				--show: 0.9;
-				color: var(--color--error);
+				color: var(--color-danger, firebrick);
 				background-color: var(--bg);
 			}
 		}
@@ -132,9 +132,9 @@
 		padding: 0.25rem 0;
 
 		border-radius: var(--radius);
-		box-shadow: 0 0.25rem 0.75rem var(--color--shadow);
+		box-shadow: 0 0.25rem 0.75rem var(--color-shadow, redshadow);
 
-		background-color: var(--color--surface-container-highest);
+		background-color: var(--color-bg, red);
 		transition: 0.5s;
 
 		&.open {
@@ -156,8 +156,8 @@
 			transition: 0.25s;
 
 			&.selectable:hover {
-				background: hsl(from var(--color--primary) h s l);
-				color: var(--color--on-primary);
+				background: hsl(from var(--color-primary, #586888) h s l);
+				color: var(--color-primary-fg, #c8d8f8);
 			}
 
 			&:is(.selectable, .clickable) {
@@ -165,7 +165,7 @@
 			}
 
 			&.selected {
-				border-left-color: var(--color--primary);
+				border-left-color: var(--color-primary, #586888);
 			}
 
 			&.disabled {

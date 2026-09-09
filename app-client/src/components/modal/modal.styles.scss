@@ -3,8 +3,8 @@
 	flex-direction: column;
 
 	position: relative;
-	border: 2px solid var(--color--outline-variant);
-	background: var(--color--surface-container);
+	border: 2px solid var(--color-shadow, #aaa);
+	background: var(--color-bg, #ffffff);
 	border-radius: 1rem;
 	padding: 1.25rem;
 	z-index: 9999;
@@ -12,7 +12,7 @@
 	scroll-behavior: smooth;
 	/* Cuts off the square ends of both scroll bars at the 4 corners */
 	clip-path: inset(0 round 1rem); 
-
+	font-family: var(--font-family, Quicksand, sans-serif);
 
 	/// ANIMATION EFFECTS ///
 	/// The modal will fade and slide in when opened, and fade and slide out 
@@ -20,12 +20,11 @@
 	opacity: 0; // Start fully transparent.
 	transform: translateY(-40px); // Start slightly above the opened position.
 	pointer-events: none; // Disable interactions until opened.
-	transition:
-		opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-		transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+	transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
 	&::backdrop {
-		background: var(--color--backdrop);
+		background: var(--color-backdrop, rgba(0, 0, 0, 0.7));
 		opacity: 0; // Start fully transparent.
 		transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 	}
@@ -68,6 +67,8 @@
 		--show: 0.8; // The button will be displayed at slightly smaller size.
 		filter: grayscale(100%); // Make the button appear in grayscale.
 		opacity: 0.5; // Start with reduced opacity to make it less prominent.
+
+		transition: 0.3s;
 
 		&:hover {
 			background: none !important;
@@ -122,39 +123,39 @@
 		justify-content: flex-end;
 		margin-top: 0.75rem;
 
-		.action-button {
-			padding: 0.35rem 0.85rem;
-			border: none;
-			border-radius: 0.35rem;
-			font-weight: 600;
-			font-size: 0.875rem;
-			cursor: pointer;
+		// .action-button {
+		// 	padding: 0.35rem 0.85rem;
+		// 	border: none;
+		// 	border-radius: 0.35rem;
+		// 	font-weight: 600;
+		// 	font-size: 0.875rem;
+		// 	cursor: pointer;
 
-			--bgc: var(--color--surface-container-high);
+		// 	--bgc: var(--color-bg, red);
 
-			&.confirm-button {
-				--bgc: var(--color--primary);
-			}
+		// 	&.confirm-button {
+		// 		--bgc: var(--color-primary, #586888);
+		// 	}
 
-			&.cancel-button {
-				--bgc: var(--color--surface-container-highest);
-			}
+		// 	&.cancel-button {
+		// 		--bgc: var(--color-bg, red);
+		// 	}
 
-			&.reset-button {
-				--bgc: var(--color--surface-container-high);
-			}
+		// 	&.reset-button {
+		// 		--bgc: var(--color-bg, red);
+		// 	}
 
-			&:hover:not(:disabled) {
-				background-color: color-mix(in hsl, contrast-color(var(--bgc)) 5%, var(--bgc));
-			}
+		// 	&:hover:not(:disabled) {
+		// 		background-color: color-mix(in hsl, contrast-color(var(--bgc)) 5%, var(--bgc));
+		// 	}
 
-			&:disabled {
-				--bgc: var(--color--surface-container-highest);
-				cursor: not-allowed;
-			}
+		// 	&:disabled {
+		// 		--bgc: var(--color-bg, red);
+		// 		cursor: not-allowed;
+		// 	}
 
-			background-color: var(--bgc);
-			color: color-mix(in hsl, contrast-color(var(--bgc)) 80%, var(--bgc));
-		}
+		// 	background-color: var(--bgc);
+		// 	color: color-mix(in hsl, contrast-color(var(--bgc)) 80%, var(--bgc));
+		// }
 	}
 }

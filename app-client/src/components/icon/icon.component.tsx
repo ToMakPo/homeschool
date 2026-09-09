@@ -38,8 +38,6 @@ const Icon = forwardRef<HTMLSpanElement, IconProps>((props, ref) => {
 		...restProps
 	} = props
 
-	console.log('has onClick:', !!onClick, name, props.id)
-
 	const classes = ['icon-component', onClick ? 'clickable' : '', disabled ? 'disabled' : '', className].filter(Boolean).join(' ')
 
 	// Format layout size string for CSS

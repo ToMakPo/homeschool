@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, type SetStateAction } from 'react'
 
 import Modal from '../../components/modal/modal.component'
 import Icon from '../../components/icon/icon.component'
@@ -11,6 +11,7 @@ import { useAuth } from '../../store/auth'
 
 import './family.styles.scss'
 import type { ApiResponse, ValidationResult } from '../../utils/api-response'
+import Avatar from '../../components/avatar/avatar.component'
 
 interface NewMember {
 	username: string
@@ -97,7 +98,7 @@ const FamilyPortal = () => {
 	const newMemberFormRef = useRef<HTMLFormElement>(null)
 
 	const newMemberModal = (
-		<Modal id='new-member-modal' isOpen={!!createNewMember} onClose={() => setCreateNewMember(null)}>
+		<Modal id='new-member-modal' show={!!createNewMember} close={() => setCreateNewMember(null)}>
 			<h3>Add New Member</h3>
 			<form id='new-member-form' ref={newMemberFormRef} onSubmit={handleNewMemberSubmit}>
 				<div className='input-group'>
@@ -175,8 +176,13 @@ const FamilyPortal = () => {
 					/>
 					{getInputMessage('password')}
 				</div>
+
+				<div className='action-buttons'>
+					<button className='action-button confirm-button' type='submit'>
+						Add Member
+					</button>
+				</div>
 				{getGeneralMessage()}
-				<button type='submit'>Add Member</button>
 			</form>
 		</Modal>
 	)
@@ -193,17 +199,16 @@ const FamilyPortal = () => {
 						{members
 							.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
 							.map((member) => {
-								console.log({ member, user, members })
 								try {
 									return (
 										<li key={member.id}>
+											<Avatar user={member} />
 											{member.fullName + (member.preferredName ? ` (${member.preferredName})` : '')}
 											<div className='member-pills'>
 												{member.isStudent && <span className='pill pill-student'>student</span>}
 												{member.isParent && <span className='pill pill-parent'>parent</span>}
 												{!member.isOwner && member.isAdmin && <span className='pill pill-admin'>admin</span>}
 												{member.isOwner && <span className='pill pill-owner'>owner</span>}
-												{/* <span className={`pill pill-${member.role}`}>{member.role}</span> */}
 												{member.id === user.id && <span className='pill pill-me'>me</span>}
 											</div>
 											{user.isOwner && member.isParent && member.id !== user.id && (

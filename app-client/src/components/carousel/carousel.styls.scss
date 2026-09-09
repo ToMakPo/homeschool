@@ -15,7 +15,7 @@
 		outline: none;
 
 		.carousel-frame-container {
-			border-color: var(--color--outline);
+			border-color: var(--color-outline, currentColor);
 		}
 	}
 
@@ -25,7 +25,7 @@
 		display: flex;
 		overflow: hidden;
 		border-radius: 0.5rem;
-		border: 3px solid var(--color--outline-variant);
+		border: 3px solid var(--color-outline-variant, currentColor);
 
 		--animation-duration: 0.4s;
 		transition: transform var(--animation-duration) cubic-bezier(0.25, 1, 0.5, 1);
@@ -58,7 +58,6 @@
 					align-items: center;
 					font-size: 1.25rem;
 					font-weight: 500;
-					color: var(--color--on-surface-variant);
 				}
 			}
 		}
@@ -196,7 +195,7 @@
 		cursor: pointer;
 
 		&:hover {
-			background-color: var(--color--surface-container-high);
+			background-color: var(--color-surface-container-high, #ffffff);
 		}
 
 		&.disabled {
@@ -230,7 +229,7 @@
 
 			&.active {
 				opacity: 1;
-				background-color: var(--color--primary);
+				background-color: var(--color-primary, #6200ee);
 			}
 		}
 	}

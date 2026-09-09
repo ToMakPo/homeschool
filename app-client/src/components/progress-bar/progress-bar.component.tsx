@@ -12,11 +12,11 @@ interface ProgressBarProps {
 	 *
 	 * A value between 0 and 100 representing the percentage of the progress bar
 	 * that is filled.
-	 * 
-	 * If the value is `null`, the progress bar will be displayed in an 
+	 *
+	 * If the value is `null`, the progress bar will be displayed in an
 	 * indeterminate state. This will show an animation indicating that the
-	 * progress cannot be determined at this time. 
-	 * 
+	 * progress cannot be determined at this time.
+	 *
 	 * The indeterminate state is typically used when the progress of an operation
 	 * cannot be measured or when the operation is ongoing without a known end.
 	 */
@@ -69,25 +69,18 @@ const ProgressBar = (props: ProgressBarProps) => {
 	const id = props.id
 
 	// Clamp percentage between 0 and 100
-	const percentage =
-		props.percentage === null
-			? null
-			: Math.max(0, Math.min(100, props.percentage))
+	const percentage = props.percentage === null ? null : Math.max(0, Math.min(100, props.percentage))
 
 	const className = [
 		'progress-bar-component',
-		percentage === null
-			? 'progress-unknown'
-			: percentage < 100
-				? 'progress-incomplete'
-				: 'progress-complete',
-		props.className,
+		percentage === null ? 'progress-unknown' : percentage < 100 ? 'progress-incomplete' : 'progress-complete',
+		props.className
 	]
 		.filter(Boolean)
 		.join(' ')
 
 	const fill = [props.fill].flat().filter(Boolean) as string[]
-	if (fill.length === 0) fill.push('var(--color--primary)') // Default fill color
+	if (fill.length === 0) fill.push('var(--color-primary, #586888)') // Default fill color
 
 	// Generate the background fill colors for the progress bar, applying a
 	// transparency to create a layered effect.
@@ -110,7 +103,7 @@ const ProgressBar = (props: ProgressBarProps) => {
 		'--bg-fill': bgFill.join(', '),
 		'--percentage': `${percentage ?? 100}%`,
 		'--shimmer': `${shimmer}s`,
-		...props.style,
+		...props.style
 	} as React.CSSProperties
 
 	return <div id={id} className={className} style={bgStyle} />

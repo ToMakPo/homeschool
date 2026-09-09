@@ -318,8 +318,8 @@ const Modal: React.FC<ModalProps> = (props) => {
 			onClick={handleBackdropClick}
 			onClose={handleOnClose}
 		>
-			{showCloseButton && <Icon name='close' className='modal-close-button' onClick={closeModal} />}
 			{props.children}
+			{showCloseButton && <Icon name='close' className='modal-close-button' size='1.5rem' onClick={closeModal} />}
 		</dialog>
 	)
 

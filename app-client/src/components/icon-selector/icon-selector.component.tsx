@@ -165,10 +165,17 @@ const IconSelector = (props: IconSelectorProps) => {
 					className='save-button'
 					title='Save Changes'
 					onClick={saveIcon}
-					fgColor='var(--color--secondary)'
+					fgColor='var(--color-shadow, redsecondary)'
 					size={30}
 				/>
-				<Icon name='square-rounded-x' className='cancel-button' title='Cancel' onClick={close} fgColor='var(--color--outline)' size={30} />
+				<Icon
+					name='square-rounded-x'
+					className='cancel-button'
+					title='Cancel'
+					onClick={close}
+					fgColor='var(--color-shadow, redoutline)'
+					size={30}
+				/>
 			</div>
 		)
 	}, [saveIcon, close])

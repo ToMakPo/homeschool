@@ -3,9 +3,9 @@
 	top: 50%;
 	left: 50%;
 	transform: translate(-50%, -50%);
-	background-color: var(--color--surface);
-	color: var(--color--on-surface);
-	border: 1px solid var(--color--outline);
+	background-color: var(--color-shadow, redsurface);
+	color: var(--color-neutral, red);
+	border: 1px solid var(--color-shadow, redoutline);
 	border-radius: 0.5rem;
 	padding: 1rem;
 	box-shadow: 0 0 50px hsl(from currentColor h s l / 0.5);
@@ -29,7 +29,7 @@
 			gap: 12px;
 
 			.active {
-				color: var(--color--primary);
+				color: var(--color-primary, #586888);
 			}
 		}
 	}

@@ -8,18 +8,18 @@
 	width: 100%;
 	height: 20px;
 
-	--fg-fill: var(--color--primary);
-	--bg-fill: var(--color--surface-container-highest);
+	--fg-fill: var(--color-primary, #586888);
+	--bg-fill: var(--color-bg, red);
 
 	--percentage: 100%;
 	--shimmer: 8s;
-	--shadow: inset -1px 1px 2px var(--color--shadow);
+	--shadow: inset -1px 1px 2px var(--color-shadow, redshadow);
 
 	height: 8px;
 	width: 100%;
 
 	background-image: linear-gradient(90deg, var(--bg-fill));
-	background-color: var(--color--surface-container-highest);
+	background-color: var(--color-bg, red);
 	background-blend-mode: overlay;
 
 	border-radius: 10px;

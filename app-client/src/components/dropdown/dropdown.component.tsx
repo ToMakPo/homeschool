@@ -79,7 +79,7 @@ export interface DropdownProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onC
 	 * setting the CSS variable `--glow`.
 	 *
 	 * @example
-	 * buttonStyle={{ '--glow': 'var(--color--secondary)' } as React.CSSProperties}
+	 * buttonStyle={{ '--glow': 'var(--color-secondary)' } as React.CSSProperties}
 	 */
 	buttonStyle?: React.CSSProperties
 	/** Styles for the dropdown menu.
