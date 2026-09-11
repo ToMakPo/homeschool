@@ -1,5 +1,6 @@
 .avatar-component {
 	border-radius: 50%;
+	user-select: none;
 
 	&.initials {
 		display: flex;

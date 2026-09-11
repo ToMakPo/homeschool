@@ -152,9 +152,9 @@ router.post('/create', authenticate, async (req: Request, res: Response) => {
 		const role = roleValidation.value!
 		validations.push(roleValidation)
 
-		if (validations.some((v) => !v.passed)) return res.json(apiResponse(sender, 401, false, 'Validation failed', { validations }))
+		if (validations.some((v) => !v.passed)) return res.json(apiResponse(sender, 402, false, 'Validation failed', { validations }))
 
-		/// CREATE NEW USER
+		/// CREATE NEW USER ///
 
 		const userId = uuidv4()
 		const hashedPassword = await bcrypt.hash(password!, 10)

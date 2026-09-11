@@ -21,3 +21,11 @@ export interface User {
 	passwordReset: boolean
 	createdAt: Date
 }
+
+export interface Subject {
+	id: string
+	name: string
+	icon: string | null
+	description: string | null
+	color: string | null
+}

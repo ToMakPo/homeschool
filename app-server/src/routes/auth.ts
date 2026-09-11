@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs'
 import { v4 as uuidv4 } from 'uuid'
 
 import pool from '../database/config'
-import { User } from '../utils/types'
 import { authenticate, signToken } from '../middleware/auth'
 import { apiResponse } from '../utils/api-response'
 import { validateUsername, validatePassword, validateName, ValidationResult, validateBoolean, validateString } from '../utils/validation'

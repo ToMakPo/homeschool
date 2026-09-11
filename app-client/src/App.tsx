@@ -57,7 +57,6 @@ export default function App() {
 				<Route path='/password-reset' element={<PasswordResetPage />} />
 
 				{/* Root Redirect */}
-
 				<Route
 					path='/'
 					element={

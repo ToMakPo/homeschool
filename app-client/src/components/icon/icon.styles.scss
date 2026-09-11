@@ -7,6 +7,7 @@
 	box-sizing: border-box; 
 	width: var(--size);
 	height: var(--size);
+	user-select: none;
 
 	.material-symbols {
 		// 1. Force the font-size to fill the total size minus whatever padding is passed inline

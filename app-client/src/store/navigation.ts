@@ -10,6 +10,7 @@ type NavigationItem = {
 
 export const navigationItems: Record<string, NavigationItem> = {
 	dashboard: { label: 'Dashboard', icon: 'dashboard_2', page: 'dashboard', roles: ['parent', 'student'] },
+	subjects: { label: 'Subjects', icon: 'square_foot', page: 'subjects', roles: ['admin'] },
 	family: { label: 'Family', icon: 'family_restroom', page: 'family', roles: ['parent', 'student'] },
 	profile: { label: 'Settings', icon: 'settings', page: 'profile', roles: ['parent', 'student'] }
 } as const

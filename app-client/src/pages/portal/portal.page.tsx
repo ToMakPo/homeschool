@@ -4,6 +4,7 @@ import PortalHeader from '../../layout/header/header.layout'
 import NavPanel from '../../layout/nav-panel/nav-panel.layout'
 
 import DashboardPage from '../../portal/dashboard/dashboard.portal'
+import SubjectsPage from '../../portal/subjects/subjects.portal'
 import FamilyPage from '../../portal/family/family.portal'
 import ProfilePage from '../../portal/profile/profile.portal'
 
@@ -18,6 +19,8 @@ const ParentPortal = () => {
 		switch (setSelectedPage) {
 			case 'dashboard':
 				return <DashboardPage />
+			case 'subjects':
+				return <SubjectsPage />
 			case 'profile':
 				return <ProfilePage />
 			case 'family':
